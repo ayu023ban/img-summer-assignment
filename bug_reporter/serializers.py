@@ -4,23 +4,27 @@ from bug_reporter import models
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    # many=  True
-    # users = UserSerializer(many = True,read_only = True)
     class Meta:
         model= models.Project
         fields=['name','wiki','users']
         extra_kwargs = {'users': {'required': False}}
 
+class ImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        models = models.Images
+        fields = "__all__"
+
 class BugSerializer(serializers.ModelSerializer):
+    images = ImageSerializer(many=True)
     class Meta:
         model= models.Bug
-        fields = ['project','user','name','description','image','tag','status']
+        fields = ['project','user','name','description','tag','status',"images"]
 
 class UserSerializer(serializers.ModelSerializer):
     many = True
     class Meta:
         model = models.User
-        fields = ['username','email','password','githublink','isAdmin']
+        fields = ['username','githublink','isAdmin']
 
 class UserPageSerializer(serializers.ModelSerializer):
     many=True
@@ -28,7 +32,7 @@ class UserPageSerializer(serializers.ModelSerializer):
     bugs = BugSerializer(many = True,read_only = True)
     class Meta:
         model= models.User
-        fields = ['username','email','password','githublink','isAdmin',"projects","bugs"]
+        fields = ['username','githublink','isAdmin',"projects","bugs"]
         extra_kwargs = {'projects': {'required': False}}
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
