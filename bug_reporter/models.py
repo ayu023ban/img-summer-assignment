@@ -1,22 +1,29 @@
 from django.db import models
 from djrichtextfield.models import RichTextField
+from django.contrib.auth.models import AbstractUser
+from django.conf import settings
+from rest_framework.authtoken.models import Token
+
 
 # Create your models here.
-class User(models.Model):
+class User(AbstractUser):
     def __str__(self):
         return self.username
-    username = models.CharField(max_length=100,blank=False)
+    # username = models.CharField(max_length=100,blank=False)
     # email = models.CharField(max_length=100,blank=False)
     # password = models.CharField(max_length=100)
     githublink = models.URLField(max_length=200)
-    isAdmin = models.BooleanField(default=False)
+    isMaster = models.BooleanField(default=False)
+    
+
 
 class Project(models.Model):
     def __str__(self):
         return self.name
     name = models.CharField(max_length=100)
     wiki = RichTextField()
-    users = models.ManyToManyField("User",related_name = "projects")
+    users = models.ManyToManyField(settings.AUTH_USER_MODEL,related_name = "projects")
+    created_at= models.DateTimeField("Creation Time",auto_now_add = True)
 
 class Bug(models.Model):
     STATUS_CHOICES=(
@@ -27,7 +34,7 @@ class Bug(models.Model):
     def __str__(self):
         return self.name
     project = models.ForeignKey(Project,related_name = "bugs", on_delete=models.CASCADE)
-    user = models.ForeignKey(User,related_name = "bugs", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,related_name = "bugs", on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     description = RichTextField(blank = True)
     # image = models.ImageField("uploaded image", blank=True,null = True)
@@ -47,3 +54,4 @@ class Images(models.Model):
     image = models.ImageField("uploaded image",blank =True,null = True)
     bug = models.ForeignKey("Bug", related_name = "images", on_delete=models.CASCADE,blank=True,null=True,default =True)
     comment = models.ForeignKey("Comment",related_name = "images",on_delete = models.CASCADE,blank = True,null=True)
+    

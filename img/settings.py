@@ -39,7 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'bug_reporter.apps.BugReporterConfig',
-    'djrichtextfield'
+    'djrichtextfield',
+    'django_filters',
+    'rest_framework.authtoken',
+
 ]
 
 MIDDLEWARE = [
@@ -141,3 +144,22 @@ DJRICHTEXTFIELD_CONFIG = {
         'width': 700
     }
 }
+
+REST_FRAMEWORK = { 
+
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+
+    ], 
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.FileUploadParser'
+    ]
+
+} 
+AUTH_USER_MODEL = 'bug_reporter.User'
+
