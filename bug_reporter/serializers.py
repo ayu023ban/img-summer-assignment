@@ -5,9 +5,8 @@ from rest_framework.parsers import FileUploadParser,MultiPartParser
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Project
-        fields = ['name', 'wiki', 'users']
-        extra_kwargs = {'users': {'required': False}}
-
+        fields = ['name', 'wiki', 'users','creator']
+        extra_kwargs = {'users': {'required': False},'creator':{'read_only':True}}
 
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,13 +17,14 @@ class ImageSerializer(serializers.ModelSerializer):
 class BugSerializer(serializers.ModelSerializer):
     # images = ImageSerializer(many=True)
     images = ImageSerializer(source="image_set", many=True, read_only=True)
-    image_upload = serializers.FileField(write_only = True)
+    # image_upload = serializers.FileField(write_only = True)
     parser_classes = [FileUploadParser,MultiPartParser]
-    print(image_upload)
+    # print(image_upload)
     class Meta:
         model = models.Bug
         fields = ['project', 'user', 'name',
-                  'description', 'tag', 'status', "images","image_upload"]
+                  'description', 'tag', 'status', "images"]
+        extra_kwargs = {"user":{"read_only":True},"project":{"read_only":True}}
         # read_only_fields=["images"]
 
     # def create(self, validated_data):
@@ -48,7 +48,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
         fields = ['username', 'githublink',
-                  'isMaster', "first_name", "last_name"]
+                   "first_name", "last_name"]
 
 
 class UserPageSerializer(serializers.ModelSerializer):
@@ -58,7 +58,7 @@ class UserPageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.User
-        fields = ['username', 'githublink', 'isAdmin', "projects", "bugs"]
+        fields = ['username', 'githublink', "projects", "bugs"]
         extra_kwargs = {'projects': {'required': False}}
 
 

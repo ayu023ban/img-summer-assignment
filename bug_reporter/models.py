@@ -1,6 +1,6 @@
 from django.db import models
 from djrichtextfield.models import RichTextField
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser,AbstractBaseUser
 from django.conf import settings
 from rest_framework.authtoken.models import Token
 
@@ -12,17 +12,19 @@ class User(AbstractUser):
     # username = models.CharField(max_length=100,blank=False)
     # email = models.CharField(max_length=100,blank=False)
     # password = models.CharField(max_length=100)
+    # username = models.CharField(max_length = 200)
     githublink = models.URLField(max_length=200)
     isMaster = models.BooleanField(default=False)
-    
+    isDisabled = models.BooleanField(default=False)
 
 
 class Project(models.Model):
     def __str__(self):
         return self.name
     name = models.CharField(max_length=100)
-    wiki = RichTextField()
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL,related_name = "projects")
+    wiki = RichTextField(blank=True)
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
+    users = models.ManyToManyField(settings.AUTH_USER_MODEL,related_name = "projects",blank=True)
     created_at= models.DateTimeField("Creation Time",auto_now_add = True)
 
 class Bug(models.Model):
@@ -38,6 +40,7 @@ class Bug(models.Model):
     name = models.CharField(max_length=100)
     description = RichTextField(blank = True)
     # image = models.ImageField("uploaded image", blank=True,null = True)
+    issued_at = models.DateTimeField(auto_now_add=True,blank=True)
     tag = models.CharField(max_length=100,blank=True,null=True)
     status = models.CharField(max_length=100,choices = STATUS_CHOICES)
     
