@@ -22,7 +22,7 @@ class BugSerializer(serializers.ModelSerializer):
     # print(image_upload)
     class Meta:
         model = models.Bug
-        fields = ['project', 'user', 'name',
+        fields = ['project', 'creator', 'name',
                   'description', 'tag', 'status', "images"]
         extra_kwargs = {"user":{"read_only":True},"project":{"read_only":True}}
         # read_only_fields=["images"]
@@ -40,6 +40,15 @@ class BugSerializer(serializers.ModelSerializer):
         #     # models.Image.objects.create(image = image_upload,bug=new_bug,comment = None)
         #     imageserial = ImageSerializer(data = {"bug":new_bug,"comment":None,"image": validated_data.get("image_upload")})
         #     imageserial.save()
+
+class BugUpdateSerializer(serializers.ModelSerializer):
+    images = ImageSerializer(source = "image_set",many =True,read_only = True)
+    parser_classes = [FileUploadParser,MultiPartParser]
+    class Meta:
+        model = models.Bug
+        fields = ['project', 'creator', 'name',
+                  'description', 'tag', 'status', "images"]
+        extra_kwargs = {"user":{"read_only":True},"project":{"read_only":True}}
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -73,11 +82,12 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Comment
-        fields = ['description', 'created_at', 'bug']
+        fields = ['description', 'created_at','bug','creator']
+        extra_kwargs = {'bug': {'read_only':True},'creator': {'read_only':True}}
 
 
-class SignUpSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.User
-        fields = ["username", "password"]
-        extra_kwargs = {"password": {"write_only": True}}
+# class SignUpSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = models.User
+#         fields = ["username", "password"]
+#         extra_kwargs = {"password": {"write_only": True}}

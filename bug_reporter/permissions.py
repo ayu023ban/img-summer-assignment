@@ -10,8 +10,8 @@ class IsAuthenticatedOrCreate(permissions.IsAuthenticated):
 
 class CustomAuthentication(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.user and request.user.is_authenticated and request.user.isDisabled:
-            return False
+        return request.user and request.user.is_authenticated and not request.user.isDisabled
+
 
 class IsTeamMember(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
@@ -24,7 +24,7 @@ class IsTeamMember(permissions.BasePermission):
         return False
 
 
-class IsCreatorOfProject(permissions.BasePermission):
+class IsCreatorOfObject(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method =='DELETE':
             return request.user == obj.creator

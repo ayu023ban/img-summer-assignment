@@ -14,6 +14,7 @@ from django.db.models.signals import post_save
 from django.conf import settings
 from django.dispatch import receiver
 from django.urls import path
+from django.shortcuts import get_object_or_404
 # from django.db.models.signals import *
 
 # Create your views here.
@@ -62,7 +63,7 @@ class ProjectList(generics.ListCreateAPIView):
 class ProjectDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = models.Project.objects.all()
     serializer_class = serializers.ProjectDetailSerializer
-    permission_classes = (CustomAuthentication,IsTeamMember,IsCreatorOfProject)
+    permission_classes = (CustomAuthentication,IsTeamMember,IsCreatorOfObject)
 
 
 # class ProjectUpdate(generics.UpdateAPIView):
@@ -74,17 +75,18 @@ class ProjectDetail(generics.RetrieveUpdateDestroyAPIView):
 class CommentDetail(generics.ListCreateAPIView):
     queryset=models.Comment.objects.all()
     serializer_class = serializers.CommentSerializer
+    def perform_create(self, serializer):
+        bug = get_object_or_404(models.Bug,pk=self.kwargs["bugid"])
+        serializer.save(creator=self.request.user,bug=bug)
     
 class BugList(generics.ListCreateAPIView):
     parser_classes = [MultiPartParser]
     queryset = models.Bug.objects.all()
     serializer_class = serializers.BugSerializer
 
-
-    def perform_create(self, serializer,issueid):
-        data = list(self.request.query_params)
-        print(data,issueid)
-        serializer.save(user=self.request.user)
+    def perform_create(self, serializer):
+        project = get_object_or_404(models.Project,pk=self.kwargs["projectid"])
+        serializer.save(project = project,creator=self.request.user)
 
 
     # def post(self, request, *args, **kwargs):
@@ -105,9 +107,9 @@ class ImageList(generics.ListCreateAPIView):
     queryset = models.Images.objects.all()
     serializer_class = serializers.ImageSerializer
 
-class BugDetail(generics.RetrieveUpdateAPIView):
+class BugDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = models.Bug.objects.all()
-    serializer_class = serializers.BugSerializer
+    serializer_class = serializers.BugUpdateSerializer
 
 
 # class SignUp(generics.CreateAPIView):

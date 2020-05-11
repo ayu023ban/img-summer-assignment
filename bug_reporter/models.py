@@ -36,7 +36,7 @@ class Bug(models.Model):
     def __str__(self):
         return self.name
     project = models.ForeignKey(Project,related_name = "bugs", on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,related_name = "bugs", on_delete=models.CASCADE)
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL,related_name = "bugs", on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     description = RichTextField(blank = True)
     # image = models.ImageField("uploaded image", blank=True,null = True)
@@ -50,6 +50,7 @@ class Comment(models.Model):
         return self.description
     description = RichTextField()
     created_at = models.DateTimeField(auto_now_add = True)
+    creator = models.ForeignKey(User,related_name="comments", on_delete=models.CASCADE,blank=True)
     bug = models.ForeignKey(Bug,related_name = "comments", on_delete=models.CASCADE)
     
 
