@@ -84,8 +84,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'OPTIONS':{
             'database':"img_summer_assignment",
-            'user':"root",
-            'password':'Manju2000@',
+            'user':'ayush',
+            'password':'password',
         }
     }
 }
