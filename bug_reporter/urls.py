@@ -17,6 +17,7 @@ urlpatterns = [
     path("bug/<int:pk>/",views.BugDetail.as_view(),name="bug-detail"),
     path('images/',views.ImageList.as_view(),name="Image_list"),
     path('projects/<int:projectid>/bugs/',views.BugList.as_view(),name="project_views"),
+    path('login/',views.Login_with_temporary_token.as_view(),name='login')
     # path('api-token-auth/', obtain_auth_token),
 
 ]

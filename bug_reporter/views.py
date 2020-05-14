@@ -1,3 +1,5 @@
+import requests ,json.decoder
+from rest_framework.views import APIView
 from rest_framework import generics, status, viewsets ,request
 from rest_framework.parsers import FileUploadParser,MultiPartParser
 from rest_framework.decorators import permission_classes
@@ -6,6 +8,7 @@ from bug_reporter.permissions import *
 from bug_reporter import models , serializers
 from django_filters import rest_framework as filters
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 
 # Create your views here.
 class UserList(generics.ListAPIView):
@@ -15,6 +18,30 @@ class UserList(generics.ListAPIView):
     permission_classes = [CustomAuthentication]
     queryset = models.User.objects.all()
     serializer_class = serializers.UserSerializer
+
+class Login_with_temporary_token(generics.GenericAPIView) :
+    queryset=models.User.objects.all()
+    serializer_class=serializers.UserSerializer
+    # lookup_field='code'
+    # lookup_url_kwarg = 'code'
+    def get(self,request):
+        code =request.query_params.get('code')
+        post_data_for_token={
+            "client_id":"mkxe5ns7lBOwM7RMVPITL90uiy9zi2CCAOX1chM9",
+            "client_secret":"hX35FshO9Czl4ZQUnQs3QfdGbETc5Duy2QMu5oy4oHbwU4tmzK37tIngbBli3WkRZeFtE9kixrwpOWA6hA8ee1yecOf8D7wtkGGE17m5EGaUx4vxSn4ceJuOMhM2BBwi",
+            "grant_type":"authorization_code",
+            "redirect_url":"http://localhost:8000/bug_reporter/login/",
+            "code":code
+        }
+        response= requests.post('https://internet.channeli.in/open_auth/token/', data=post_data_for_token).json()
+        access_token = response["access_token"]
+        
+        headers = {
+            'Authorization': 'Bearer ' + access_token,
+        }
+        user_data = requests.get(url="https://internet.channeli.in/open_auth/get_user_data/", headers=headers)
+        return HttpResponse(user_data)
+
 
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     # permission_classes = [permissions.IsAuthenticated, TokenHasReadWriteScope]
