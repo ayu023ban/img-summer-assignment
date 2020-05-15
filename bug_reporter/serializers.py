@@ -23,7 +23,7 @@ class BugSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Bug
         fields = ['project', 'creator', 'name',
-                  'description', 'tag', 'status', "images"]
+                  'description', 'tag', 'status', "images","issued_at"]
         extra_kwargs = {"user":{"read_only":True},"project":{"read_only":True}}
         # read_only_fields=["images"]
 

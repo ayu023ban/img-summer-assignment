@@ -13,9 +13,9 @@ from django.http import HttpResponse
 # Create your views here.
 class UserList(generics.ListAPIView):
     # permission_classes = [permissions.IsAuthenticated, TokenHasReadWriteScope]
-    authentication_classes = [SessionAuthentication,BasicAuthentication]
+    # authentication_classes = [SessionAuthentication,BasicAuthentication]
     # authentication_classes = [TokenAuthentication]
-    permission_classes = [CustomAuthentication]
+    # permission_classes = [CustomAuthentication]
     queryset = models.User.objects.all()
     serializer_class = serializers.UserSerializer
 
@@ -35,7 +35,8 @@ class Login_with_temporary_token(generics.GenericAPIView) :
         }
         response= requests.post('https://internet.channeli.in/open_auth/token/', data=post_data_for_token).json()
         access_token = response["access_token"]
-        
+        print(access_token)
+        print(response)
         headers = {
             'Authorization': 'Bearer ' + access_token,
         }
