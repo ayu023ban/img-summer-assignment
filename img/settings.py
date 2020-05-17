@@ -133,6 +133,12 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 10240 # higher than the count of fields
 
 CORS_ORIGIN_ALLOW_ALL = True
 
+from corsheaders.defaults import default_headers
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'Authorization'
+]
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
@@ -155,7 +161,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         # 'rest_framework.authentication.BasicAuthentication',
         # 'rest_framework.authentication.SessionAuthentication',
-        # 'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
         # 'bug_reporter.authentication.CustomTokenAuthentication'
 
     ], 

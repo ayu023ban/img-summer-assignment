@@ -22,6 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('djrichtextfield/', include('djrichtextfield.urls')),
     path('bug_reporter/', include('bug_reporter.urls')),
-    path('api-auth/', include('rest_framework.urls')),
+    # path('api-auth/', include('rest_framework.urls')),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

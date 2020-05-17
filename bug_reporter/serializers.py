@@ -5,8 +5,9 @@ from rest_framework.parsers import FileUploadParser,MultiPartParser
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Project
-        fields = ['name', 'wiki', 'users','creator','created_at']
-        extra_kwargs = {'users': {'required': False},'creator':{'read_only':True}}
+        fields = ['id','name', 'wiki', 'members','creator','created_at']
+        read_only_fields=['id','created_at','creator']
+        extra_kwargs = {'members': {'required': False}}
 
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -22,7 +23,7 @@ class BugSerializer(serializers.ModelSerializer):
         # fields = ['project', 'creator', 'name',
         #           'description', 'tag', 'status','issued_at']
         fields='__all__'
-        extra_kwargs = {"user":{"read_only":True}}
+        extra_kwargs = {"creator":{"read_only":True}}
 
 
 class BugUpdateSerializer(serializers.ModelSerializer):
@@ -36,24 +37,15 @@ class BugUpdateSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    many = True
-
     class Meta:
         model = models.User
-        fields = ['username', 'githublink',
-                   "first_name", "last_name"]
+        fields = ['id','username', 'githublink',
+                   "first_name","enroll_no","email"]
 
-
-class UserPageSerializer(serializers.ModelSerializer):
-    many = True
-    projects = ProjectSerializer(many=True, read_only=True)
-    bugs = BugSerializer(many=True, read_only=True)
-
+class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
-        fields = ['username', 'githublink', "projects", "bugs"]
-        extra_kwargs = {'projects': {'required': False}}
-
+        fields = ["githublink"]
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     bugs = BugSerializer(many=True, read_only=True)

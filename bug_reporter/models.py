@@ -26,8 +26,8 @@ class Project(models.Model):
         return self.name
     name = models.CharField(max_length=100)
     wiki = RichTextField(blank=True)
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL,related_name = "projects",blank=True)
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.SET_NULL,null=True)
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL,related_name = "projects",blank=True)
     created_at= models.DateTimeField("Creation Time",auto_now_add = True)
 
 class Bug(models.Model):
@@ -46,6 +46,11 @@ class Bug(models.Model):
     tag = models.CharField(max_length=100,blank=True,null=True)
     status = models.CharField(max_length=100,choices = STATUS_CHOICES)
     important = models.BooleanField(default=False)
+    assigned_to = models.ForeignKey(User,related_name="issues_assigned_to_users",on_delete=models.SET_NULL,null=True)
+
+    class Meta:
+        ordering=['issued_at']
+
 class Comment(models.Model):
     def __str__(self):
         return self.description

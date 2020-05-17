@@ -1,13 +1,6 @@
 from rest_framework import permissions
 # from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope, TokenHasScope
 
-class IsAuthenticatedOrCreate(permissions.IsAuthenticated):
-    def has_permission(self, request, view):
-        if request.method == 'POST':
-            return True
-        return super(IsAuthenticatedOrCreate, self).has_permission(request, view)
-
-
 class CustomAuthentication(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and not request.user.isDisabled
@@ -27,7 +20,7 @@ class IsTeamMember(permissions.BasePermission):
 class IsCreatorOfObject(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method =='DELETE':
-            return request.user == obj.creator
+            return request.user == obj.creator or request.user.isMaster
         return super().has_object_permission(request, view, obj)
 
 
