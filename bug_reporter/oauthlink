@@ -1,1 +1,1 @@
-https://internet.channeli.in/oauth/authorise/?client_id=mkxe5ns7lBOwM7RMVPITL90uiy9zi2CCAOX1chM9&redirect_url=http://localhost:8000/bug_reporter/&state=RANDOM_STATE_STRING&scope=Person
+https://internet.channeli.in/oauth/authorise/?client_id=l1Wb17BXy5ZoQeJ1fzOtZutOObUrzSi9fW1xxLGR&redirect_url=http://localhost:8000/bug_reporter/login/&state=RANDOM_STATE_STRING&scope=Person

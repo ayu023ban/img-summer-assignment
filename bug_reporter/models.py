@@ -1,22 +1,25 @@
 from django.db import models
 from djrichtextfield.models import RichTextField
-from django.contrib.auth.models import AbstractUser,AbstractBaseUser
+from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from rest_framework.authtoken.models import Token
-
-
+from django.utils import timezone
 # Create your models here.
 class User(AbstractUser):
     def __str__(self):
         return self.username
-    # username = models.CharField(max_length=100,blank=False)
-    # email = models.CharField(max_length=100,blank=False)
-    # password = models.CharField(max_length=100)
-    # username = models.CharField(max_length = 200)
     githublink = models.URLField(max_length=200)
     isMaster = models.BooleanField(default=False)
     isDisabled = models.BooleanField(default=False)
+    enroll_no = models.IntegerField(default = 0)
 
+class AuthToken(models.Model):
+    access_token = models.CharField(max_length=40)
+    revoke_token = models.CharField(max_length=40)
+    expires_in = models.IntegerField()
+    user=models.OneToOneField(User,on_delete=models.CASCADE)
+    pseudo_token = models.OneToOneField(Token, on_delete=models.SET_NULL,blank=True,null=True)
+    
 
 class Project(models.Model):
     def __str__(self):
@@ -39,12 +42,10 @@ class Bug(models.Model):
     creator = models.ForeignKey(settings.AUTH_USER_MODEL,related_name = "bugs", on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     description = RichTextField(blank = True)
-    # image = models.ImageField("uploaded image", blank=True,null = True)
-    issued_at = models.DateTimeField(auto_now_add=True,blank=True)
+    issued_at = models.DateTimeField("Creation Time",auto_now_add = True)
     tag = models.CharField(max_length=100,blank=True,null=True)
     status = models.CharField(max_length=100,choices = STATUS_CHOICES)
-    
-
+    important = models.BooleanField(default=False)
 class Comment(models.Model):
     def __str__(self):
         return self.description
