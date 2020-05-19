@@ -15,7 +15,12 @@ from django_filters import rest_framework as filters
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, JsonResponse,Http404
 import django_filters.rest_framework
+from django.db.models import Q
+import os
+from django.conf import settings
+file_path = os.path.join(settings.BASE_DIR, "bug_reporter/secret.txt")
 
+secret = open(file_path, "r")
 
 # Create your views here.
 class CommentDetail(generics.ListCreateAPIView):
@@ -26,11 +31,6 @@ class CommentDetail(generics.ListCreateAPIView):
         bug = get_object_or_404(models.Bug, pk=self.kwargs["bugid"])
         serializer.save(creator=self.request.user, bug=bug)
 
-
-class ImageList(generics.ListCreateAPIView):
-    parser_classes = [MultiPartParser]
-    queryset = models.Images.objects.all()
-    serializer_class = serializers.ImageSerializer
 
 
 class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateModelMixin,viewsets.GenericViewSet):
@@ -45,13 +45,16 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
     @action(methods=['POST', 'OPTIONS'], detail=False, url_name='login', url_path='login')
     @permission_classes([AllowAny])
     def login_with_temporary_token(self,request):
+        print(request.data)
         try:
             code = request.data["code"]
+            print(code)
         except KeyError:
-            return Response("'error' key is missing")
+            print("mdfa")
+            return Response("'error' key is missing",status=status.HTTP_404_NOT_FOUND)
         post_data_for_token = {
             "client_id": "l1Wb17BXy5ZoQeJ1fzOtZutOObUrzSi9fW1xxLGR",
-            "client_secret": "lSHHesPe3SgiYsiB0PH2Bobpmsr0LZtnEtS1K3fa4m2HJwUrmIFSnrWNSSLkEbh5Sgzs0KOx4QIV9aq0wgtvy7Jlzf5SXjOrjgbqA8UWwZiXY67OPT6AO2oB8i7xVvnQ",
+            "client_secret": secret.readline(),
             "grant_type": "authorization_code",
             "redirect_url": "http://localhost:8000/bug_reporter/login/",
             "code": code
@@ -62,7 +65,7 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         try:
             access_token = response["access_token"]
         except KeyError:
-            return Response("Your code is Wrong")
+            return Response("Your code is Wrong",status=status.HTTP_400_BAD_REQUEST)
         headers = {
             'Authorization': 'Bearer ' + access_token,
         }
@@ -88,8 +91,8 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
                 user.save()
                 response = self.login(user, response, user_data)
         else:
-             return HttpResponse("not Imgian")
-        return HttpResponse(response)
+             return Response("not Imgian" ,status=status.HTTP_401_UNAUTHORIZED)
+        return Response(response,status=status.HTTP_202_ACCEPTED)
 
     def login(self, user, access_response, user_data):
         try:
@@ -115,11 +118,12 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         auth_token.save()
         res = {
             "token": token.key,
-            "user_data": user_data
+            "user_data": serializers.UserSerializer(user).data
         }
-        return JsonResponse(res)
+        return res
 
-    @permission_classes([IsAuthenticated])
+    @permission_classes([CustomAuthentication])
+    @action(methods=['GET'], detail=False, url_name='logout', url_path='logout')
     def logout(self, request):
         user = request.user
         auth_token = models.AuthToken.objects.get(user=user)
@@ -133,7 +137,7 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
 
 class BugViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser]
-    queryset = models.Bug.objects.all()
+    queryset = models.Bug.objects.all().order_by('-issued_at')
     serializer_class = serializers.BugSerializer
     filter_backends = (filters.DjangoFilterBackend,
                        SearchFilter, OrderingFilter)
@@ -150,13 +154,22 @@ class BugViewSet(viewsets.ModelViewSet):
         else:
             return serializers.BugUpdateSerializer
 
-    @action(methods=['patch', ], detail=True, url_path='resolve', url_name='resolve')
+    @action(methods=['patch'], detail=True, url_path='resolve', url_name='resolve')
     def resolve(self, request, pk):
         bug = models.Bug.objects.get(pk=pk)
         bug.resolved = True
         bug.save()
         ser = serializers.BugSerializer(bug)
         return Response(ser.data)
+    
+
+    @action(methods=['get',],detail=False,url_path='mybugs',url_name='my_bugs')
+    def get_my_issue(self,request):
+        query = (Q(creator=request.user) | Q(assigned_to=request.user))
+        bugs = models.Bug.objects.filter(query)
+        ser = serializers.BugSerializer(bugs,many=True)
+        return Response(ser.data,)
+
 
     @action(methods=['patch', ], detail=True, url_path='assign', url_name='assign')
     def assign_bug(self, request, pk):
@@ -173,19 +186,40 @@ class BugViewSet(viewsets.ModelViewSet):
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
-    queryset = models.Project.objects.all()
+    queryset = models.Project.objects.all().order_by('-created_at')
     serializer_class = serializers.ProjectSerializer
-    permission_classes = [IsAuthenticated]
+    filter_backends = (filters.DjangoFilterBackend,
+                       SearchFilter, OrderingFilter)
+    __basic_fields = ['name','wiki','githublink','creator','members']
+    filter_fields = __basic_fields
+    search_fields = __basic_fields
+    permission_classes = [AllowAny]
     permission_classes_by_action ={
-        'update':[CustomAuthentication,IsTeamMember],
+        # 'update':[CustomAuthentication,IsTeamMember],
+        'update':[AllowAny],
         'destroy':[CustomAuthentication,IsCreatorOfObject],
-        'create`':[CustomAuthentication]
+        'create':[CustomAuthentication],
+        'retrieve':[AllowAny],
+        'get':[AllowAny]
     }
     def perform_create(self, serializer):
-        users = serializer.validated_data["members"]
-        if self.request.user not in list(users):
-            users.append(self.request.user)
+        users = serializer.validated_data.get("members",[])
+        if self.request.user.id not in list(users):
+            users.append(self.request.user.id)
         serializer.save(creator = self.request.user,members = users)
+
+    @action(methods=['patch'],detail=True,url_path='update_members',url_name='update_members')
+    def update_members(self,request,pk):
+        users = list(self.request.data.get("members",[]))
+        if self.request.user.id not in list(users):
+            users.append(self.request.user.id)
+        project = models.Project.objects.get(pk=pk)
+        ser = serializers.ProjectSerializer(project,data={"members":users},partial=True)
+        if ser.is_valid():
+            ser.save()
+            return Response({"status":"updated members successfully","user_ids":users},status=status.HTTP_202_ACCEPTED)
+        else:
+            return Response(ser.errors(),status=status.Http404)
 
 
     @action(methods=['get', ], detail=True, url_path='bugs', url_name='bugs')

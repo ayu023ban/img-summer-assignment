@@ -3,35 +3,32 @@ from bug_reporter import models
 from rest_framework.parsers import FileUploadParser,MultiPartParser
 
 class ProjectSerializer(serializers.ModelSerializer):
+    member_names = serializers.StringRelatedField(many=True,read_only=True,source='members')
     class Meta:
         model = models.Project
-        fields = ['id','name', 'wiki', 'members','creator','created_at']
-        read_only_fields=['id','created_at','creator']
+        fields = ['id','name', 'wiki',"member_names" ,'members','creator','created_at']
+        read_only_fields=['id','created_at','creator',"member_names"]
         extra_kwargs = {'members': {'required': False}}
 
-class ImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Images
-        fields = "__all__"
+        def __str__(self):
+            return self.name
 
 
 class BugSerializer(serializers.ModelSerializer):
-    # issued_at = serializers.DateTimeField(format="iso-8601", required=False, read_only=True)
-
+    project_name = serializers.CharField(source = 'project.name')
     class Meta:
         model = models.Bug
-        # fields = ['project', 'creator', 'name',
-        #           'description', 'tag', 'status','issued_at']
-        fields='__all__'
+        # fields='__all__'
+        fields=('creator','description','important','issued_at','name','status','tag','project_name')
         extra_kwargs = {"creator":{"read_only":True}}
 
 
+
 class BugUpdateSerializer(serializers.ModelSerializer):
-    # images = ImageSerializer(source = "image_set",many =True,read_only = True)
-    parser_classes = [FileUploadParser,MultiPartParser]
+    project_name = serializers.CharField(source = 'project.name')
     class Meta:
         model = models.Bug
-        fields = ['project', 'creator', 'name',
+        fields = ['project','project_name', 'creator', 'name',
                   'description', 'tag', 'status',"issued_at","important"]
         extra_kwargs = {"user":{"read_only":True},"project":{"read_only":True}}
 

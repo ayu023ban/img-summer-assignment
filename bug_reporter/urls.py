@@ -8,7 +8,6 @@ from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
     path('bugs/<int:bugid>/comment/',views.CommentDetail.as_view(),name = "comment-detail"),
-    path('images/',views.ImageList.as_view(),name="Image_list"),
 ]
 urlpatterns += routers.router.urls
 
