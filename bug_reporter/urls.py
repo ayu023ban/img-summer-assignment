@@ -4,12 +4,12 @@ from bug_reporter import views
 from django.conf import settings
 from django.conf.urls.static import static
 from bug_reporter import routers
-from rest_framework.authtoken.views import obtain_auth_token
+# from rest_framework.authtoken.views import obtain_auth_token
 
-urlpatterns = [
-    path('bugs/<int:bugid>/comment/',views.CommentDetail.as_view(),name = "comment-detail"),
-]
-urlpatterns += routers.router.urls
+# urlpatterns = [
+#     path('bugs/<int:bugid>/comment/',views.CommentDetail.as_view(),name = "comment-detail"),
+# ]
+urlpatterns = routers.router.urls
 
 urlpatterns = format_suffix_patterns(urlpatterns)
 

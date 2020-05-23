@@ -15,22 +15,29 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class BugSerializer(serializers.ModelSerializer):
-    project_name = serializers.CharField(source = 'project.name')
+    project_name = serializers.CharField(source = 'project.name', read_only=True)
+    creator_name = serializers.CharField(source = 'creator.username',read_only=True)
+    assigned_name = serializers.CharField(source = 'assigned_to.username',read_only=True)
+    no_of_comments = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = models.Bug
-        # fields='__all__'
-        fields=('creator','description','important','issued_at','name','status','tag','project_name')
-        extra_kwargs = {"creator":{"read_only":True}}
+        fields='__all__'
+        # fields=['id','creator','description','creator_name','domain','important','project','project_name','issued_at','name','status','tag']
+        # fields=['creator_name','project_name']
+        read_only_fields = ['creator','issued_at','id','project_name','tag']
+        # extra_kwargs = {"project_name":{"read_only":True}}
+
+    def get_no_of_comments(self,obj):
+        return obj.comments.count()
 
 
-
-class BugUpdateSerializer(serializers.ModelSerializer):
-    project_name = serializers.CharField(source = 'project.name')
-    class Meta:
-        model = models.Bug
-        fields = ['project','project_name', 'creator', 'name',
-                  'description', 'tag', 'status',"issued_at","important"]
-        extra_kwargs = {"user":{"read_only":True},"project":{"read_only":True}}
+# class BugUpdateSerializer(serializers.ModelSerializer):
+#     project_name = serializers.CharField(source = 'project.name',read_only=True)
+#     class Meta:
+#         model = models.Bug
+#         fields = ['project','project_name',"id", 'creator', 'name',
+#                   'description', 'tag', 'status',"issued_at","important"]
+#         extra_kwargs = {"user":{"read_only":True},"project":{"read_only":True}}
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -53,7 +60,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    creator_name = serializers.CharField(source='creator.username',read_only=True)
     class Meta:
         model = models.Comment
-        fields = ['description', 'created_at','bug','creator']
-        extra_kwargs = {'bug': {'read_only':True},'creator': {'read_only':True}}
+        fields = ['description', 'created_at','bug','creator',"creator_name"]
+        read_only_fields=['creator','created_at',"creator"]
+        # extra_kwargs = {'bug': {'read_only':True},'creator': {'read_only':True}}

@@ -42,13 +42,13 @@ class Bug(models.Model):
     project = models.ForeignKey(Project,related_name = "bugs", on_delete=models.CASCADE)
     creator = models.ForeignKey(settings.AUTH_USER_MODEL,related_name = "bugs", on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
-    description = RichTextField(blank = True)
+    description = models.CharField(max_length=200,blank = True)
     issued_at = models.DateTimeField("Creation Time",auto_now_add = True)
     tag = models.CharField(max_length=100,blank=True,null=True)
     status = models.CharField(max_length=100,choices = STATUS_CHOICES)
     important = models.BooleanField(default=False)
     assigned_to = models.ForeignKey(User,related_name="issues_assigned_to_users",on_delete=models.SET_NULL,null=True)
-
+    domain = models.CharField(choices=(('f','frontend'),('b','backend'),('o','other')),max_length=100,null=True,blank=True)
     class Meta:
         ordering=['issued_at']
 
@@ -61,8 +61,8 @@ class Comment(models.Model):
     bug = models.ForeignKey(Bug,related_name = "comments", on_delete=models.CASCADE)
     
 
-class Images(models.Model):
-    image = models.ImageField("uploaded image",blank =True,null = True)
-    bug = models.ForeignKey("Bug", related_name = "images", on_delete=models.CASCADE,blank=True,null=True,default =True)
-    comment = models.ForeignKey("Comment",related_name = "images",on_delete = models.CASCADE,blank = True,null=True)
+# class Images(models.Model):
+#     image = models.ImageField("uploaded image",blank =True,null = True)
+#     bug = models.ForeignKey("Bug", related_name = "images", on_delete=models.CASCADE,blank=True,null=True,default =True)
+#     comment = models.ForeignKey("Comment",related_name = "images",on_delete = models.CASCADE,blank = True,null=True)
     

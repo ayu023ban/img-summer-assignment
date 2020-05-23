@@ -87,9 +87,12 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'OPTIONS':{
+            'charset': 'utf8mb4',
+            # 'use_unicode': True,
             'database':"img_summer_assignment",
             'user':'ayush',
             'password':'password',
+            # 'read_default_file': '/home/ayu023ban/my.cnf',
         }
     }
 }

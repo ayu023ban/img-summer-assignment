@@ -3,7 +3,7 @@ from rest_framework import permissions
 
 class CustomAuthentication(permissions.BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and not request.user.isDisabled
+        return request.user and request.user.is_authenticated and not request.user.isDisabled or user.isMaster
 
 
 class IsTeamMember(permissions.BasePermission):
@@ -19,9 +19,9 @@ class IsTeamMember(permissions.BasePermission):
 
 class IsCreatorOfObject(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.method =='DELETE':
-            return request.user == obj.creator or request.user.isMaster
-        return super().has_object_permission(request, view, obj)
+        # if request.method =='DELETE':
+        return request.user == obj.creator or request.user.isMaster
+        # return super().has_object_permission(request, view, obj)
 
 
 class IsOwnerOfUserOrReadOnly(permissions.BasePermission):
