@@ -47,21 +47,23 @@ class CommentViewSet(viewsets.ModelViewSet):
 class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateModelMixin,viewsets.GenericViewSet):
     queryset = models.User.objects.all()
     serializer_class = serializers.UserSerializer
-    # permission_classes_by_action = {'update': [CustomAuthentication,IsCreatorOfObject],
-    #                                 'destroy': [CustomAuthentication,IsMaster],
-    #                                 'default': [CustomAuthentication]}
-    # def get_permissions(self):
-    #     try: 
-    #         return [permission() for permission in self.permission_classes_by_action[self.action]]
-    #     except KeyError as e: 
-    #         return [permission() for permission in self.permission_classes_by_action['default']]
+    permission_classes_by_action = {'update': [CustomAuthentication,IsCreatorOfObject],
+                                    'destroy': [CustomAuthentication,IsMaster],
+                                    # 'create':[AllowAny],
+                                    'login_with_temporary_token':[AllowAny],
+                                    'default': [CustomAuthentication]}
+    def get_permissions(self):
+        try: 
+            return [permission() for permission in self.permission_classes_by_action[self.action]]
+        except KeyError as e: 
+            return [permission() for permission in self.permission_classes_by_action['default']]
 
     def get_serializer_class(self):
         if self.request.method =="PUT":
             return serializers.UserUpdateSerializer
         return serializers.UserSerializer
 
-    @action(methods=['POST', 'OPTIONS'], detail=False, url_name='login', url_path='login')
+    @action(methods=['POST','OPTIONS'], detail=False, url_name='login', url_path='login')
     @permission_classes([AllowAny])
     def login_with_temporary_token(self,request):
         print(request.data)
@@ -91,7 +93,7 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         user_data = requests.get(
             url="https://internet.channeli.in/open_auth/get_user_data/", headers=headers).json()
         roles = user_data["person"]['roles']
-        maintainer = False
+        maintainer = True
         for i in roles:
             if i['role'] == 'Maintainer':
                 maintainer = True

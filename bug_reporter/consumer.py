@@ -19,20 +19,18 @@ from rest_framework.authtoken.models import Token
 class CommentConsumer(WebsocketConsumer):
 
     def connect(self):
-        print('Request aayi thi connection ki !!')
         self.room_name = self.scope["url_route"]["kwargs"]["issue_id"]
         self.issue_id = int(self.room_name)
         self.room_group_name = "issue_"+self.room_name
-        # print(self.room_name)
+        room_group_name = self.room_group_name
         async_to_sync(self.channel_layer.group_add)(
-            self.room_group_name,
+            room_group_name,
             self.channel_name
         )
         self.accept()
 
 
     def disconnect(self, close_code=None):
-        print('Request aayi thi band karne ki !!')
         self.send(json.dumps({"end_message":close_code}))
         async_to_sync (self.channel_layer.group_discard)(
             self.room_group_name,
@@ -42,12 +40,11 @@ class CommentConsumer(WebsocketConsumer):
 
     def fetch_messages(self, data,user):
         issue = None
-        print(user)
         try:
             issue = Bug.objects.get(pk = self.issue_id)
         except Bug.DoesNotExist:
             self.disconnect("issue does not exists")
-        comments = issue.comments.all()
+        comments = issue.comments.all().order_by("-created_at")
         serialized_comment = CommentSerializer(comments,many=True).data
         content = JSONRenderer().render(serialized_comment)
         stream = io.BytesIO(content)
@@ -68,6 +65,7 @@ class CommentConsumer(WebsocketConsumer):
         # print(serialized_comment)
         data = {"command":"new_message","data":serialized_comment}
         self.send(text_data=json.dumps(data))
+        self.send_event(data)
       
     commands = {
         'fetch_messages' : fetch_messages,
@@ -88,13 +86,8 @@ class CommentConsumer(WebsocketConsumer):
         user = token_object.user
         return user
 
-            
-        # return "undefined"
-
-
     def receive(self, text_data):
         json_data = json.loads(text_data)
-        print(json_data)
         user = self.check_token(json_data)
         if user != "undefined":
             try:
@@ -104,3 +97,16 @@ class CommentConsumer(WebsocketConsumer):
             except KeyError:
                 self.disconnect("command property is not present")
             self.commands[command](self,json_data,user)
+
+    def send_event(self,data):
+        string_data = json.dumps(data)
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+            "type":"comment_message",
+            "text":string_data
+            }
+            )
+
+    def comment_message(self,event):
+        self.send(text_data=event["text"])
