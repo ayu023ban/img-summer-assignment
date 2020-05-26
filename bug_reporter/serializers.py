@@ -65,4 +65,4 @@ class CommentSerializer(serializers.ModelSerializer):
         model = models.Comment
         fields = ['description', 'created_at','bug','creator',"creator_name"]
         read_only_fields=['creator','created_at',"creator"]
-        # extra_kwargs = {'bug': {'read_only':True},'creator': {'read_only':True}}
+        extra_kwargs = {'bug': {'required':False}}

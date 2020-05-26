@@ -47,14 +47,14 @@ class CommentViewSet(viewsets.ModelViewSet):
 class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateModelMixin,viewsets.GenericViewSet):
     queryset = models.User.objects.all()
     serializer_class = serializers.UserSerializer
-    permission_classes_by_action = {'update': [CustomAuthentication,IsCreatorOfObject],
-                                    'destroy': [CustomAuthentication,IsMaster],
-                                    'default': [CustomAuthentication]}
-    def get_permissions(self):
-        try: 
-            return [permission() for permission in self.permission_classes_by_action[self.action]]
-        except KeyError as e: 
-            return [permission() for permission in self.permission_classes_by_action['default']]
+    # permission_classes_by_action = {'update': [CustomAuthentication,IsCreatorOfObject],
+    #                                 'destroy': [CustomAuthentication,IsMaster],
+    #                                 'default': [CustomAuthentication]}
+    # def get_permissions(self):
+    #     try: 
+    #         return [permission() for permission in self.permission_classes_by_action[self.action]]
+    #     except KeyError as e: 
+    #         return [permission() for permission in self.permission_classes_by_action['default']]
 
     def get_serializer_class(self):
         if self.request.method =="PUT":
@@ -112,7 +112,7 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         else:
              return Response("not Imgian" ,status=status.HTTP_401_UNAUTHORIZED)
         return Response(response,status=status.HTTP_202_ACCEPTED)
-
+    @permission_classes([AllowAny])
     def login(self, user, access_response, user_data):
         try:
             auth_token = models.AuthToken.objects.get(user=user)

@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
+from corsheaders.defaults import default_headers
+# from channels.routing import ProtocolTypeRouter
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -25,7 +27,7 @@ SECRET_KEY = '%7i(0wlis0^g(fw*-)hm9z75@vq)mm0=dq5f^t0!k#5auw8jo_'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -43,7 +45,7 @@ INSTALLED_APPS = [
     'djrichtextfield',
     'django_filters',
     'rest_framework.authtoken',
-
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -58,8 +60,17 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'img.urls'
+ASGI_APPLICATION = "bug_reporter.routing.application"
 
-
+CHANNEL_LAYERS = {
+    'default' : {
+        'BACKEND' : 'channels_redis.core.RedisChannelLayer',
+        'config' : {
+            'hosts' : [('localhost', 6379)],
+            # 'hosts':[('localhost',3000),('localhost',8000),('redis',6379)]
+        }
+    }
+}
 
 TEMPLATES = [
     {
@@ -77,6 +88,11 @@ TEMPLATES = [
     },
 ]
 
+
+# application = ProtocolTypeRouter({
+#     # Empty for now (http->django views is added by default)
+# })
+
 WSGI_APPLICATION = 'img.wsgi.application'
 
 
@@ -86,12 +102,12 @@ WSGI_APPLICATION = 'img.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS':{
+        'OPTIONS': {
             'charset': 'utf8mb4',
             # 'use_unicode': True,
-            'database':"img_summer_assignment",
-            'user':'ayush',
-            'password':'password',
+            'database': "img_summer_assignment",
+            'user': 'ayush',
+            'password': 'password',
             # 'read_default_file': '/home/ayu023ban/my.cnf',
         }
     }
@@ -130,13 +146,12 @@ USE_L10N = True
 
 USE_TZ = True
 
-MEDIA_URL =  '/media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 10240 # higher than the count of fields
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10240  # higher than the count of fields
 
 CORS_ORIGIN_ALLOW_ALL = True
 
-from corsheaders.defaults import default_headers
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'Authorization'
@@ -159,7 +174,7 @@ DJRICHTEXTFIELD_CONFIG = {
     }
 }
 
-REST_FRAMEWORK = { 
+REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
         # 'rest_framework.authentication.BasicAuthentication',
@@ -167,7 +182,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
         # 'bug_reporter.authentication.CustomTokenAuthentication'
 
-    ], 
+    ],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
@@ -175,6 +190,5 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.FileUploadParser'
     ]
 
-} 
+}
 AUTH_USER_MODEL = 'bug_reporter.User'
-
