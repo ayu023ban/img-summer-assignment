@@ -8,10 +8,14 @@ from django.utils import timezone
 class User(AbstractUser):
     def __str__(self):
         return self.username
-    githublink = models.URLField(max_length=200)
+    githublink = models.URLField(max_length=200 , blank=True,null=True)
     isMaster = models.BooleanField(default=False)
     isDisabled = models.BooleanField(default=False)
     enroll_no = models.IntegerField(default = 0)
+    facebookLink = models.URLField(max_length=200,blank=True,null=True)
+    instagramLink = models.URLField(max_length=200,blank=True,null=True)
+    socialEmail = models.EmailField(max_length=200,blank=True,null=True)
+    linkedinLink = models.URLField(max_length=200 ,blank=True,null=True)
 
 class AuthToken(models.Model):
     access_token = models.CharField(max_length=40)

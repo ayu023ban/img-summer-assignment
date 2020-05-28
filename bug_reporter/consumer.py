@@ -64,7 +64,7 @@ class CommentConsumer(WebsocketConsumer):
         serialized_comment = CommentSerializer(new_comment).data
         # print(serialized_comment)
         data = {"command":"new_message","data":serialized_comment}
-        self.send(text_data=json.dumps(data))
+        # self.send(text_data=json.dumps(data))
         self.send_event(data)
       
     commands = {

@@ -6,7 +6,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     member_names = serializers.StringRelatedField(many=True,read_only=True,source='members')
     class Meta:
         model = models.Project
-        fields = ['id','name', 'wiki',"member_names" ,'members','creator','created_at']
+        fields = ['id','name','githublink', 'wiki',"member_names" ,'members','creator','created_at']
         read_only_fields=['id','created_at','creator',"member_names"]
         extra_kwargs = {'members': {'required': False}}
 
@@ -43,13 +43,14 @@ class BugSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
-        fields = ['id','username', 'githublink',
+        fields = ['id','username', 'githublink','facebookLink','instagramLink',"linkedinLink","socialEmail",
                    "first_name","enroll_no","email"]
+        read_only_fields = ['githublink','facebookLink','instagramLink',"socialEmail","linkedinLink"]
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
-        fields = ["githublink"]
+        fields = ["githublink","username","facebookLink","instagramLink","linkedinLink","socialEmail"]
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     bugs = BugSerializer(many=True, read_only=True)
@@ -63,6 +64,6 @@ class CommentSerializer(serializers.ModelSerializer):
     creator_name = serializers.CharField(source='creator.username',read_only=True)
     class Meta:
         model = models.Comment
-        fields = ['description', 'created_at','bug','creator',"creator_name"]
+        fields = ['id','description', 'created_at','bug','creator',"creator_name"]
         read_only_fields=['creator','created_at',"creator"]
         extra_kwargs = {'bug': {'required':False}}

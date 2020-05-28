@@ -46,12 +46,14 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateModelMixin,viewsets.GenericViewSet):
     queryset = models.User.objects.all()
-    serializer_class = serializers.UserSerializer
+    # serializer_class = serializers.UserSerializer
     permission_classes_by_action = {'update': [CustomAuthentication,IsCreatorOfObject],
                                     'destroy': [CustomAuthentication,IsMaster],
                                     # 'create':[AllowAny],
                                     'login_with_temporary_token':[AllowAny],
-                                    'default': [CustomAuthentication]}
+                                    'logout':[CustomAuthentication],
+                                    'default': [CustomAuthentication],
+                                    }
     def get_permissions(self):
         try: 
             return [permission() for permission in self.permission_classes_by_action[self.action]]
@@ -59,12 +61,12 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
             return [permission() for permission in self.permission_classes_by_action['default']]
 
     def get_serializer_class(self):
-        if self.request.method =="PUT":
+        if self.request.method =="PUT" or self.request.method == "PATCH":
             return serializers.UserUpdateSerializer
         return serializers.UserSerializer
 
     @action(methods=['POST','OPTIONS'], detail=False, url_name='login', url_path='login')
-    @permission_classes([AllowAny])
+    # @permission_classes([AllowAny])
     def login_with_temporary_token(self,request):
         print(request.data)
         try:
@@ -114,7 +116,9 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         else:
              return Response("not Imgian" ,status=status.HTTP_401_UNAUTHORIZED)
         return Response(response,status=status.HTTP_202_ACCEPTED)
-    @permission_classes([AllowAny])
+    
+
+    # @permission_classes([AllowAny])
     def login(self, user, access_response, user_data):
         try:
             auth_token = models.AuthToken.objects.get(user=user)
@@ -143,7 +147,7 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         }
         return res
 
-    @permission_classes([CustomAuthentication])
+    # @permission_classes([CustomAuthentication])
     @action(methods=['GET'], detail=False, url_name='logout', url_path='logout')
     def logout(self, request):
         user = request.user
@@ -161,7 +165,7 @@ class BugViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.BugSerializer
     filter_backends = (filters.DjangoFilterBackend,
                        SearchFilter, OrderingFilter)
-    __basic_fields = ['tag', 'issued_at', 'status', 'important']
+    __basic_fields = ['tag','creator', 'issued_at', 'status', 'important']
     filter_fields = __basic_fields
     search_fields = __basic_fields
     permission_classes_by_action = {'update': [CustomAuthentication,IsCreatorOfObject],
@@ -179,21 +183,13 @@ class BugViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user,status="P")
 
-    # @action(methods=['patch'], detail=True, url_path='resolve', url_name='resolve')
-    # def resolve(self, request, pk):
-    #     bug = models.Bug.objects.get(pk=pk)
-    #     bug.resolved = True
-    #     bug.save()
-    #     ser = serializers.BugSerializer(bug)
-    #     return Response(ser.data)
-    
 
-    # @action(methods=['get',],detail=False,url_path='mybugs',url_name='my_bugs')
-    # def get_my_issue(self,request):
-    #     query = (Q(creator=request.user) | Q(assigned_to=request.user))
-    #     bugs = models.Bug.objects.filter(query)
-    #     ser = serializers.BugSerializer(bugs,many=True)
-    #     return Response(ser.data,)
+    @action(methods=['get',],detail=False,url_path='mybugs',url_name='my_bugs')
+    def get_my_issue(self,request):
+        query = (Q(creator=request.user) | Q(assigned_to=request.user))
+        bugs = models.Bug.objects.filter(query)
+        ser = serializers.BugSerializer(bugs,many=True)
+        return Response(ser.data,)
 
 
     @action(methods=['patch', ], detail=True, url_path='assign', url_name='assign')
