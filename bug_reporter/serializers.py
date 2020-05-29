@@ -41,9 +41,16 @@ class BugSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    def get_no_of_projects(self,obj):
+        return obj.projects.count()
+    def get_no_of_issues(self,obj):
+        return obj.bugs.count()
+    no_of_projects = serializers.SerializerMethodField(read_only=True)
+    no_of_issues = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = models.User
-        fields = ['id','username', 'githublink','facebookLink','instagramLink',"linkedinLink","socialEmail",
+        fields = ['id',"no_of_issues","no_of_projects","isMaster",'username', 'githublink','facebookLink','instagramLink',"linkedinLink","socialEmail",
                    "first_name","enroll_no","email"]
         read_only_fields = ['githublink','facebookLink','instagramLink',"socialEmail","linkedinLink"]
 

@@ -165,7 +165,7 @@ class BugViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.BugSerializer
     filter_backends = (filters.DjangoFilterBackend,
                        SearchFilter, OrderingFilter)
-    __basic_fields = ['tag','creator', 'issued_at', 'status', 'important']
+    __basic_fields = ['tag','creator', 'domain', 'status', 'important']
     filter_fields = __basic_fields
     search_fields = __basic_fields
     permission_classes_by_action = {'update': [CustomAuthentication,IsCreatorOfObject],
@@ -235,8 +235,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
     @action(methods=['patch'],detail=True,url_path='update_members',url_name='update_members')
     def update_members(self,request,pk):
         users = list(self.request.data.get("members",[]))
+        instance = self.get_object()
+        creator_id = instance.creator.id
+        # print(creator_id)
         if self.request.user.id not in list(users):
             users.append(self.request.user.id)
+        if creator_id not in list(users):
+            users.append(creator_id)
         project = models.Project.objects.get(pk=pk)
         ser = serializers.ProjectSerializer(project,data={"members":users},partial=True)
         if ser.is_valid():

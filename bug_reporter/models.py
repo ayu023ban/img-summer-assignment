@@ -30,8 +30,8 @@ class Project(models.Model):
         return self.name
     name = models.CharField(max_length=100)
     wiki = RichTextField(blank=True)
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.SET_NULL,null=True)
-    members = models.ManyToManyField(settings.AUTH_USER_MODEL,related_name = "projects",blank=True)
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL,related_name = "projects",on_delete=models.SET_NULL,null=True)
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL,blank=True)
     created_at= models.DateTimeField("Creation Time",auto_now_add = True)
     githublink=models.URLField(max_length=200,blank=True,null=True)
 
