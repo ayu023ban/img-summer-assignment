@@ -6,6 +6,7 @@ from rest_framework.parsers import FileUploadParser, MultiPartParser
 from rest_framework.decorators import permission_classes, action
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated,AllowAny
@@ -192,16 +193,18 @@ class BugViewSet(viewsets.ModelViewSet):
         return Response(ser.data,)
 
 
-    @action(methods=['patch', ], detail=True, url_path='assign', url_name='assign')
+    @action(methods=['get', ], detail=True, url_path='assign', url_name='assign')
     def assign_bug(self, request, pk):
         assign_to = self.request.query_params.get('assign_to')
+        if assign_to == 'None':
+            assign_to = None
         bug = models.Bug.objects.get(pk=pk)
 
-        if models.User.objects.get(pk=assign_to) in bug.project.members.all():
+        if assign_to==None or models.User.objects.get(pk=assign_to) in bug.project.members.all():
             ser = serializers.BugSerializer(bug, data={'assigned_to': assign_to}, partial=True)
             if ser.is_valid():
                 ser.save()
-                return Response({'status': 'Assignment Successful'}, status=status.HTTP_202_ACCEPTED)
+                return Response(ser.data, status=status.HTTP_202_ACCEPTED)
         else:
             return Response({'Error': 'User not a team member'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
@@ -262,11 +265,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         ser = serializers.BugSerializer(bug_list, many=True)
         return Response(ser.data)
-    
-    # @action(methods=['get', ], detail=True, url_path='team', url_name='team')
-    # def get_team_members(self, request, pk):
-    #     project = models.Project.objects.get(pk=pk)
-    #     members_list = project.members
-    #     ser = serializers.UserSerializer(members_list, many=True)
-    #     return Response(ser.data)
 
+class ImageViewSet(viewsets.ModelViewSet):
+    queryset=models.Image.objects.all()
+    serializer_class = serializers.ImageSerializer
+    permission_classes=([AllowAny])     

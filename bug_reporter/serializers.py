@@ -17,7 +17,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 class BugSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(source = 'project.name', read_only=True)
     creator_name = serializers.CharField(source = 'creator.username',read_only=True)
-    assigned_name = serializers.CharField(source = 'assigned_to.username',read_only=True)
+    assigned_name = serializers.CharField(source = 'assigned_to.username',read_only=True,default=None)
     no_of_comments = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = models.Bug
@@ -50,14 +50,14 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.User
-        fields = ['id',"no_of_issues","no_of_projects","isMaster",'username', 'githublink','facebookLink','instagramLink',"linkedinLink","socialEmail",
+        fields = ['id',"no_of_issues","no_of_projects","isMaster",'username', 'githubLink','facebookLink','instagramLink',"linkedinLink","socialEmail",
                    "first_name","enroll_no","email"]
         read_only_fields = ['githublink','facebookLink','instagramLink',"socialEmail","linkedinLink"]
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
-        fields = ["githublink","username","facebookLink","instagramLink","linkedinLink","socialEmail"]
+        fields = ["githubLink","username","facebookLink","instagramLink","linkedinLink","socialEmail"]
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     bugs = BugSerializer(many=True, read_only=True)
@@ -74,3 +74,8 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['id','description', 'created_at','bug','creator',"creator_name"]
         read_only_fields=['creator','created_at',"creator"]
         extra_kwargs = {'bug': {'required':False}}
+
+class ImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Image
+        fields='__all__'

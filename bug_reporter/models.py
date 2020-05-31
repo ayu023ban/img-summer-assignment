@@ -8,7 +8,7 @@ from django.utils import timezone
 class User(AbstractUser):
     def __str__(self):
         return self.username
-    githublink = models.URLField(max_length=200 , blank=True,null=True)
+    githubLink = models.URLField(max_length=200 , blank=True,null=True)
     isMaster = models.BooleanField(default=False)
     isDisabled = models.BooleanField(default=False)
     enroll_no = models.IntegerField(default = 0)
@@ -51,7 +51,7 @@ class Bug(models.Model):
     tag = models.CharField(max_length=100,blank=True,null=True)
     status = models.CharField(max_length=100,choices = STATUS_CHOICES)
     important = models.BooleanField(default=False)
-    assigned_to = models.ForeignKey(User,related_name="issues_assigned_to_users",on_delete=models.SET_NULL,null=True)
+    assigned_to = models.ForeignKey(User,related_name="issues_assigned_to_users",on_delete=models.SET_NULL,blank=True,null=True)
     domain = models.CharField(choices=(('f','frontend'),('b','backend'),('o','other')),max_length=100,null=True,blank=True)
     class Meta:
         ordering=['issued_at']
@@ -65,8 +65,8 @@ class Comment(models.Model):
     bug = models.ForeignKey(Bug,related_name = "comments", on_delete=models.CASCADE)
     
 
-# class Images(models.Model):
-#     image = models.ImageField("uploaded image",blank =True,null = True)
-#     bug = models.ForeignKey("Bug", related_name = "images", on_delete=models.CASCADE,blank=True,null=True,default =True)
-#     comment = models.ForeignKey("Comment",related_name = "images",on_delete = models.CASCADE,blank = True,null=True)
+class Image(models.Model):
+    image = models.ImageField("uploaded image",blank =True,null = True)
+    bug = models.ForeignKey("Bug", related_name = "images", on_delete=models.CASCADE,blank=True,null=True)
+    comment = models.ForeignKey("Comment",related_name = "images",on_delete = models.CASCADE,blank = True,null=True)
     
