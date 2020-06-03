@@ -177,10 +177,8 @@ DJRICHTEXTFIELD_CONFIG = {
 REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        # 'rest_framework.authentication.BasicAuthentication',
-        # 'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-        # 'bug_reporter.authentication.CustomTokenAuthentication'
+        # 'rest_framework.authentication.TokenAuthentication',
+        'bug_reporter.authentication.ExpiringTokenAuthentication'
 
     ],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],

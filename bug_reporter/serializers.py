@@ -16,28 +16,17 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 class BugSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(source = 'project.name', read_only=True)
-    creator_name = serializers.CharField(source = 'creator.username',read_only=True)
-    assigned_name = serializers.CharField(source = 'assigned_to.username',read_only=True,default=None)
+    creator_name = serializers.CharField(source = 'creator.full_name',read_only=True)
+    assigned_name = serializers.CharField(source = 'assigned_to.full_name',read_only=True,default=None)
     no_of_comments = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = models.Bug
         fields='__all__'
-        # fields=['id','creator','description','creator_name','domain','important','project','project_name','issued_at','name','status','tag']
-        # fields=['creator_name','project_name']
         read_only_fields = ['creator','issued_at','id','project_name','tag']
-        # extra_kwargs = {"project_name":{"read_only":True}}
 
     def get_no_of_comments(self,obj):
         return obj.comments.count()
 
-
-# class BugUpdateSerializer(serializers.ModelSerializer):
-#     project_name = serializers.CharField(source = 'project.name',read_only=True)
-#     class Meta:
-#         model = models.Bug
-#         fields = ['project','project_name',"id", 'creator', 'name',
-#                   'description', 'tag', 'status',"issued_at","important"]
-#         extra_kwargs = {"user":{"read_only":True},"project":{"read_only":True}}
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -50,14 +39,14 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.User
-        fields = ['id',"no_of_issues","no_of_projects","isMaster",'username', 'githubLink','facebookLink','instagramLink',"linkedinLink","socialEmail",
-                   "first_name","enroll_no","email"]
+        fields = ['id',"no_of_issues","full_name","no_of_projects","isMaster",'username', 'githubLink','facebookLink','instagramLink',"linkedinLink","socialEmail",
+                   "first_name","last_name","enroll_no","email"]
         read_only_fields = ['githublink','facebookLink','instagramLink',"socialEmail","linkedinLink"]
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
-        fields = ["githubLink","username","facebookLink","instagramLink","linkedinLink","socialEmail"]
+        fields = ["githubLink","username","first_name","last_name","full_name","facebookLink","instagramLink","linkedinLink","socialEmail"]
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     bugs = BugSerializer(many=True, read_only=True)
@@ -68,7 +57,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    creator_name = serializers.CharField(source='creator.username',read_only=True)
+    creator_name = serializers.CharField(source='creator.full_name',read_only=True)
     class Meta:
         model = models.Comment
         fields = ['id','description', 'created_at','bug','creator',"creator_name"]

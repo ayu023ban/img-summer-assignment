@@ -16,13 +16,20 @@ from django_filters import rest_framework as filters
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, JsonResponse,Http404
 import django_filters.rest_framework
+from datetime import timedelta
+from django.utils import timezone
 from django.db.models import Q
 import os
 from django.conf import settings
 file_path = os.path.join(settings.BASE_DIR, "bug_reporter/secret.txt")
 
 secret = open(file_path, "r")
-
+def expires_in(token):
+    time_elapsed = timezone.now() - token.created
+    left_time = timedelta(seconds = 20*(60*60*24)) - time_elapsed
+    return left_time
+def is_token_expired(token):
+    return expires_in(token) < timedelta(seconds = 0)
 # Create your views here.
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = models.Comment.objects.all()
@@ -53,6 +60,7 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
                                     # 'create':[AllowAny],
                                     'login_with_temporary_token':[AllowAny],
                                     'logout':[CustomAuthentication],
+                                    'loginWithCookie':[AllowAny],
                                     'default': [CustomAuthentication],
                                     }
     def get_permissions(self):
@@ -67,14 +75,11 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         return serializers.UserSerializer
 
     @action(methods=['POST','OPTIONS'], detail=False, url_name='login', url_path='login')
-    # @permission_classes([AllowAny])
     def login_with_temporary_token(self,request):
         print(request.data)
         try:
             code = request.data["code"]
-            print(code)
         except KeyError:
-            print("mdfa")
             return Response("'error' key is missing",status=status.HTTP_404_NOT_FOUND)
         post_data_for_token = {
             "client_id": "l1Wb17BXy5ZoQeJ1fzOtZutOObUrzSi9fW1xxLGR",
@@ -106,11 +111,15 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
                     email=user_data['contactInformation']['instituteWebmailAddress'])
                 response = self.login(user, response, user_data)
             except models.User.DoesNotExist:
+                first_name = user_data['person']['fullName'].split(" ")[0]
+                last_name = user_data['person']['fullName'].split(" ")[1]
                 user = models.User(
-                    username=user_data['person']['fullName'],
+                    username=first_name+"_"+last_name,
                     enroll_no=user_data['student']['enrolmentNumber'],
                     email=user_data['contactInformation']['instituteWebmailAddress'],
-                    first_name=user_data['person']['fullName']
+                    first_name=first_name,
+                    last_name = last_name,
+                    full_name = user_data['person']['fullName']
                 )
                 user.save()
                 response = self.login(user, response, user_data)
@@ -119,7 +128,6 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         return Response(response,status=status.HTTP_202_ACCEPTED)
     
 
-    # @permission_classes([AllowAny])
     def login(self, user, access_response, user_data):
         try:
             auth_token = models.AuthToken.objects.get(user=user)
@@ -136,19 +144,20 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
             )
         try:
             token = Token.objects.get(user=user)
-            token.delete()
-            token = Token.objects.create(user=user)
+            if is_token_expired(token):
+                token.delete()
+                token = Token.objects.create(user=user)
         except Token.DoesNotExist:
             token = Token.objects.create(user=user)
         auth_token.pseudo_token = token
         auth_token.save()
         res = {
             "token": token.key,
+            "expires_in":expires_in(token),
             "user_data": serializers.UserSerializer(user).data
         }
         return res
 
-    # @permission_classes([CustomAuthentication])
     @action(methods=['GET'], detail=False, url_name='logout', url_path='logout')
     def logout(self, request):
         user = request.user
@@ -158,7 +167,23 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         token.delete()
         return Response("logged_out successfully", status=status.HTTP_200_OK)
 
-    
+    @action(methods=["POST"],detail=False,url_name="CookieLogin",url_path="cookielogin")
+    def loginWithCookie(self,request):
+        try:
+            token = request.data["token"]
+        except KeyError:
+            return Response("'error' token is missing",status=status.HTTP_404_NOT_FOUND)
+        try:
+            tokenModel = Token.objects.get(key=token)
+        except Token.DoesNotExist:
+            return Response("'error' your token is not valid",status=status.HTTP_404_NOT_FOUND)
+        user = tokenModel.user
+        res = {
+            "token": token,
+            "expires_in":expires_in(tokenModel),
+            "user_data": serializers.UserSerializer(user).data
+        }
+        return Response(res)
     
 
 class BugViewSet(viewsets.ModelViewSet):

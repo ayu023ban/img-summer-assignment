@@ -6,12 +6,8 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
-# from channels.consumer import AsyncConsumer
-# from channels.db import database_sync_to_async
 from asgiref.sync import async_to_sync
-from channels.generic.websocket import AsyncConsumer
 from channels.generic.websocket import WebsocketConsumer
-
 from .models import *
 from .serializers import *
 from rest_framework.authtoken.models import Token
@@ -62,9 +58,7 @@ class CommentConsumer(WebsocketConsumer):
         bug = Bug.objects.get(pk=self.issue_id)
         new_comment = Comment.objects.create(description=comment,creator=user,bug=bug)
         serialized_comment = CommentSerializer(new_comment).data
-        # print(serialized_comment)
         data = {"command":"new_message","data":serialized_comment}
-        # self.send(text_data=json.dumps(data))
         self.send_event(data)
       
     commands = {

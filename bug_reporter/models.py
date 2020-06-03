@@ -7,7 +7,7 @@ from django.utils import timezone
 # Create your models here.
 class User(AbstractUser):
     def __str__(self):
-        return self.username
+        return self.full_name
     githubLink = models.URLField(max_length=200 , blank=True,null=True)
     isMaster = models.BooleanField(default=False)
     isDisabled = models.BooleanField(default=False)
@@ -16,6 +16,7 @@ class User(AbstractUser):
     instagramLink = models.URLField(max_length=200,blank=True,null=True)
     socialEmail = models.EmailField(max_length=200,blank=True,null=True)
     linkedinLink = models.URLField(max_length=200 ,blank=True,null=True)
+    full_name = models.CharField(max_length=200,blank=True,null=True)
 
 class AuthToken(models.Model):
     access_token = models.CharField(max_length=40)
@@ -30,7 +31,7 @@ class Project(models.Model):
         return self.name
     name = models.CharField(max_length=100)
     wiki = RichTextField(blank=True)
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL,related_name = "projects",on_delete=models.SET_NULL,null=True)
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL,related_name = "projects",on_delete=models.CASCADE,null=True)
     members = models.ManyToManyField(settings.AUTH_USER_MODEL,blank=True)
     created_at= models.DateTimeField("Creation Time",auto_now_add = True)
     githublink=models.URLField(max_length=200,blank=True,null=True)
@@ -54,7 +55,7 @@ class Bug(models.Model):
     assigned_to = models.ForeignKey(User,related_name="issues_assigned_to_users",on_delete=models.SET_NULL,blank=True,null=True)
     domain = models.CharField(choices=(('f','frontend'),('b','backend'),('o','other')),max_length=100,null=True,blank=True)
     class Meta:
-        ordering=['issued_at']
+        ordering=['-issued_at']
 
 class Comment(models.Model):
     def __str__(self):
