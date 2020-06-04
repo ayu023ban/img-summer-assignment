@@ -4,9 +4,12 @@ from rest_framework.parsers import FileUploadParser,MultiPartParser
 
 class ProjectSerializer(serializers.ModelSerializer):
     member_names = serializers.StringRelatedField(many=True,read_only=True,source='members')
+    no_of_issues = serializers.SerializerMethodField(read_only=True)
+    def get_no_of_issues(self,obj):
+        return obj.bugs.count()
     class Meta:
         model = models.Project
-        fields = ['id','name','githublink', 'wiki',"member_names" ,'members','creator','created_at']
+        fields ='__all__'
         read_only_fields=['id','created_at','creator',"member_names"]
         extra_kwargs = {'members': {'required': False}}
 
@@ -19,14 +22,21 @@ class BugSerializer(serializers.ModelSerializer):
     creator_name = serializers.CharField(source = 'creator.full_name',read_only=True)
     assigned_name = serializers.CharField(source = 'assigned_to.full_name',read_only=True,default=None)
     no_of_comments = serializers.SerializerMethodField(read_only=True)
+    tags = serializers.SerializerMethodField()
     class Meta:
         model = models.Bug
         fields='__all__'
-        read_only_fields = ['creator','issued_at','id','project_name','tag']
+        read_only_fields = ['creator','issued_at','id','project_name','no_of_comments']
 
     def get_no_of_comments(self,obj):
         return obj.comments.count()
-
+    def get_tags(self,obj):
+        tags = obj.tags.all()
+        print(tags)
+        result = []
+        for x in tags:
+            result.append(x.name)
+        return result
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -40,20 +50,13 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
         fields = ['id',"no_of_issues","full_name","no_of_projects","isMaster",'username', 'githubLink','facebookLink','instagramLink',"linkedinLink","socialEmail",
-                   "first_name","last_name","enroll_no","email"]
-        read_only_fields = ['githublink','facebookLink','instagramLink',"socialEmail","linkedinLink"]
+                   "first_name","last_name","enroll_no","email","isDisabled"]
+        read_only_fields = ['githublink','facebookLink','id','isMaster','instagramLink',"socialEmail","linkedinLink"]
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
         fields = ["githubLink","username","first_name","last_name","full_name","facebookLink","instagramLink","linkedinLink","socialEmail"]
-
-class ProjectDetailSerializer(serializers.ModelSerializer):
-    bugs = BugSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = models.Project
-        fields = ['name', 'wiki', 'users', 'bugs']
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -68,3 +71,8 @@ class ImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Image
         fields='__all__'
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Tag
+        fields = '__all__'

@@ -1,7 +1,7 @@
 import requests
 import json.decoder
 import json
-from rest_framework import generics, status, viewsets, request,mixins
+from rest_framework import generics, status, viewsets, request, mixins
 from rest_framework.parsers import FileUploadParser, MultiPartParser
 from rest_framework.decorators import permission_classes, action
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -9,12 +9,15 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from bug_reporter.permissions import *
 from bug_reporter import models, serializers
 from django_filters import rest_framework as filters
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponse, JsonResponse,Http404
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.http import HttpResponse, JsonResponse, Http404
 import django_filters.rest_framework
 from datetime import timedelta
 from django.utils import timezone
@@ -24,63 +27,72 @@ from django.conf import settings
 file_path = os.path.join(settings.BASE_DIR, "bug_reporter/secret.txt")
 
 secret = open(file_path, "r")
+
+
 def expires_in(token):
     time_elapsed = timezone.now() - token.created
-    left_time = timedelta(seconds = 20*(60*60*24)) - time_elapsed
+    left_time = timedelta(seconds=20*(60*60*24)) - time_elapsed
     return left_time
+
+
 def is_token_expired(token):
-    return expires_in(token) < timedelta(seconds = 0)
+    return expires_in(token) < timedelta(seconds=0)
 # Create your views here.
+
+
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = models.Comment.objects.all()
     serializer_class = serializers.CommentSerializer
     filter_backends = (filters.DjangoFilterBackend,
                        SearchFilter, OrderingFilter)
-    __basic_fields = ['bug', 'creator','description']
+    __basic_fields = ['bug', 'creator', 'description']
     filter_fields = __basic_fields
     search_fields = __basic_fields
-    permission_classes_by_action = {'update': [CustomAuthentication,IsCreatorOfObject],
-                                    'destroy': [CustomAuthentication,IsCreatorOfObject],
+    permission_classes_by_action = {'update': [CustomAuthentication, IsCreatorOfObject],
+                                    'destroy': [CustomAuthentication, IsCreatorOfObject],
                                     'default': [CustomAuthentication]}
+
     def get_permissions(self):
-        try: 
+        try:
             return [permission() for permission in self.permission_classes_by_action[self.action]]
-        except KeyError as e: 
+        except KeyError as e:
             return [permission() for permission in self.permission_classes_by_action['default']]
+
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
 
 
-
-class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateModelMixin,viewsets.GenericViewSet):
+class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     queryset = models.User.objects.all()
     # serializer_class = serializers.UserSerializer
-    permission_classes_by_action = {'update': [CustomAuthentication,IsCreatorOfObject],
-                                    'destroy': [CustomAuthentication,IsMaster],
+    permission_classes_by_action = {'update': [CustomAuthentication, IsCreatorOfObject],
+                                    'destroy': [CustomAuthentication, IsMaster],
                                     # 'create':[AllowAny],
-                                    'login_with_temporary_token':[AllowAny],
-                                    'logout':[CustomAuthentication],
-                                    'loginWithCookie':[AllowAny],
+                                    'login_with_temporary_token': [AllowAny],
+                                    'logout': [CustomAuthentication],
+                                    'loginWithCookie': [AllowAny],
+                                    'disable':[IsMaster],
                                     'default': [CustomAuthentication],
                                     }
+
     def get_permissions(self):
-        try: 
+        try:
             return [permission() for permission in self.permission_classes_by_action[self.action]]
-        except KeyError as e: 
+        except KeyError as e:
             return [permission() for permission in self.permission_classes_by_action['default']]
 
     def get_serializer_class(self):
-        if self.request.method =="PUT" or self.request.method == "PATCH":
+        if self.request.method == "PUT" or self.request.method == "PATCH":
             return serializers.UserUpdateSerializer
         return serializers.UserSerializer
 
-    @action(methods=['POST','OPTIONS'], detail=False, url_name='login', url_path='login')
-    def login_with_temporary_token(self,request):
+    @action(methods=['POST', 'OPTIONS'], detail=False, url_name='login', url_path='login')
+    def login_with_temporary_token(self, request):
         print(request.data)
         try:
             code = request.data["code"]
         except KeyError:
-            return Response("'error' key is missing",status=status.HTTP_404_NOT_FOUND)
+            return Response("'error' key is missing", status=status.HTTP_404_NOT_FOUND)
         post_data_for_token = {
             "client_id": "l1Wb17BXy5ZoQeJ1fzOtZutOObUrzSi9fW1xxLGR",
             "client_secret": secret.readline(),
@@ -94,7 +106,7 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         try:
             access_token = response["access_token"]
         except KeyError:
-            return Response("Your code is Wrong",status=status.HTTP_400_BAD_REQUEST)
+            return Response("Your code is Wrong", status=status.HTTP_400_BAD_REQUEST)
         headers = {
             'Authorization': 'Bearer ' + access_token,
         }
@@ -118,15 +130,14 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
                     enroll_no=user_data['student']['enrolmentNumber'],
                     email=user_data['contactInformation']['instituteWebmailAddress'],
                     first_name=first_name,
-                    last_name = last_name,
-                    full_name = user_data['person']['fullName']
+                    last_name=last_name,
+                    full_name=user_data['person']['fullName']
                 )
                 user.save()
                 response = self.login(user, response, user_data)
         else:
-             return Response("not Imgian" ,status=status.HTTP_401_UNAUTHORIZED)
-        return Response(response,status=status.HTTP_202_ACCEPTED)
-    
+            return Response("not Imgian", status=status.HTTP_401_UNAUTHORIZED)
+        return Response(response, status=status.HTTP_202_ACCEPTED)
 
     def login(self, user, access_response, user_data):
         try:
@@ -153,7 +164,7 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         auth_token.save()
         res = {
             "token": token.key,
-            "expires_in":expires_in(token),
+            "expires_in": expires_in(token),
             "user_data": serializers.UserSerializer(user).data
         }
         return res
@@ -167,56 +178,65 @@ class UserViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,mixins.UpdateM
         token.delete()
         return Response("logged_out successfully", status=status.HTTP_200_OK)
 
-    @action(methods=["POST"],detail=False,url_name="CookieLogin",url_path="cookielogin")
-    def loginWithCookie(self,request):
+    @action(methods=["POST"], detail=False, url_name="CookieLogin", url_path="cookielogin")
+    def loginWithCookie(self, request):
         try:
             token = request.data["token"]
         except KeyError:
-            return Response("'error' token is missing",status=status.HTTP_404_NOT_FOUND)
+            return Response("'error' token is missing", status=status.HTTP_404_NOT_FOUND)
         try:
             tokenModel = Token.objects.get(key=token)
         except Token.DoesNotExist:
-            return Response("'error' your token is not valid",status=status.HTTP_404_NOT_FOUND)
+            return Response("'error' your token is not valid", status=status.HTTP_404_NOT_FOUND)
         user = tokenModel.user
         res = {
             "token": token,
-            "expires_in":expires_in(tokenModel),
+            "expires_in": expires_in(tokenModel),
             "user_data": serializers.UserSerializer(user).data
         }
         return Response(res)
-    
+
+    @action(methods=["GET"],detail=True,url_name="Disable",url_path="disable")
+    def disable(self,request,pk):
+        user = models.User.objects.get(pk=pk)
+        user.isDisabled = not user.isDisabled
+        user.save()
+        ser = serializers.UserSerializer(user)
+        return Response(ser.data)
 
 class BugViewSet(viewsets.ModelViewSet):
     queryset = models.Bug.objects.all().order_by('-issued_at')
     serializer_class = serializers.BugSerializer
     filter_backends = (filters.DjangoFilterBackend,
                        SearchFilter, OrderingFilter)
-    __basic_fields = ['tag','creator', 'domain', 'status', 'important']
+    __basic_fields = [ 'creator', 'domain', 'status', 'important']
     filter_fields = __basic_fields
     search_fields = __basic_fields
-    permission_classes_by_action = {'update': [CustomAuthentication,IsCreatorOfObject],
-                                    'destroy': [CustomAuthentication,IsCreatorOfObject],
+    permission_classes_by_action = {'update': [CustomAuthentication, IsCreatorOfObject],
+                                    'destroy': [CustomAuthentication, IsCreatorOfObject],
                                     'default': [CustomAuthentication]}
+
     def get_permissions(self):
-        try: 
+        try:
             return [permission() for permission in self.permission_classes_by_action[self.action]]
-        except KeyError as e: 
+        except KeyError as e:
             return [permission() for permission in self.permission_classes_by_action['default']]
 
-
-    
-
     def perform_create(self, serializer):
-        serializer.save(creator=self.request.user,status="P")
+        tags = self.request.data["tags"]
+        bug = serializer.save(creator=self.request.user, status="P")
+        print(tags)
+        for x in tags:
+            (tag,_) = models.Tag.objects.get_or_create(name=x)
+            print(tag)
+            tag.bugs.add(bug)
 
-
-    @action(methods=['get',],detail=False,url_path='mybugs',url_name='my_bugs')
-    def get_my_issue(self,request):
+    @action(methods=['get', ], detail=False, url_path='mybugs', url_name='my_bugs')
+    def get_my_issue(self, request):
         query = (Q(creator=request.user) | Q(assigned_to=request.user))
         bugs = models.Bug.objects.filter(query)
-        ser = serializers.BugSerializer(bugs,many=True)
+        ser = serializers.BugSerializer(bugs, many=True)
         return Response(ser.data,)
-
 
     @action(methods=['get', ], detail=True, url_path='assign', url_name='assign')
     def assign_bug(self, request, pk):
@@ -225,8 +245,9 @@ class BugViewSet(viewsets.ModelViewSet):
             assign_to = None
         bug = models.Bug.objects.get(pk=pk)
 
-        if assign_to==None or models.User.objects.get(pk=assign_to) in bug.project.members.all():
-            ser = serializers.BugSerializer(bug, data={'assigned_to': assign_to}, partial=True)
+        if assign_to == None or models.User.objects.get(pk=assign_to) in bug.project.members.all():
+            ser = serializers.BugSerializer(
+                bug, data={'assigned_to': assign_to}, partial=True)
             if ser.is_valid():
                 ser.save()
                 return Response(ser.data, status=status.HTTP_202_ACCEPTED)
@@ -234,35 +255,64 @@ class BugViewSet(viewsets.ModelViewSet):
             return Response({'Error': 'User not a team member'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
 
+@receiver(post_save, sender=models.Bug)
+def issue_create_mail_sender(sender, **kwargs):
+    bug = kwargs['instance']
+    project = bug.project
+    members = project.members.all()
+    emails = []
+    for x in members:
+        emails.append(x.email)
+    subject = f"New Issue To Your Project {project.name}"
+    message = "<p>A new issue is added to you project</p><p>Here is the description of the issue.</p><hr/><br/><br/>"
+    html_message = message+bug.description
+    send_mail(subject, message, settings.EMAIL_HOST_USER, emails,
+              fail_silently=False, html_message=html_message)
+
+
+@receiver(post_save, sender=models.Comment)
+def comment_create_mail_sender(sender, **kwargs):
+    comment = kwargs['instance']
+    creator = comment.creator.full_name
+    bug = comment.bug
+    bug_creator = bug.creator
+    email = [bug_creator.email]
+    subject = f"{creator} commented on your issue {bug.name}"
+    message = f"<pre>{creator} commented on your issue {bug.name}.\nThe Comment is:</pre>"
+    html_message = message+comment.description
+    send_mail(subject, message, settings.EMAIL_HOST_USER, email,
+              fail_silently=True, html_message=html_message)
+
+
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = models.Project.objects.all().order_by('-created_at')
     serializer_class = serializers.ProjectSerializer
     filter_backends = (filters.DjangoFilterBackend,
                        SearchFilter, OrderingFilter)
-    __basic_fields = ['name','wiki','githublink','creator','members']
+    __basic_fields = ['name', 'wiki', 'githublink', 'creator', 'members']
     filter_fields = __basic_fields
     search_fields = __basic_fields
     # permission_classes = [AllowAny]
-    permission_classes_by_action = {'update': [CustomAuthentication,IsTeamMember],
-                                    'destroy': [CustomAuthentication,IsCreatorOfObject],
+    permission_classes_by_action = {'update': [CustomAuthentication, IsTeamMember],
+                                    'destroy': [CustomAuthentication, IsCreatorOfObject],
                                     'default': [CustomAuthentication]}
+
     def get_permissions(self):
-        try: 
+        try:
             return [permission() for permission in self.permission_classes_by_action[self.action]]
-        except KeyError as e: 
+        except KeyError as e:
             return [permission() for permission in self.permission_classes_by_action['default']]
 
-
     def perform_create(self, serializer):
-        users = serializer.validated_data.get("members",[])
+        users = serializer.validated_data.get("members", [])
         if self.request.user.id not in list(users):
             users.append(self.request.user.id)
-        serializer.save(creator = self.request.user,members = users)
+        serializer.save(creator=self.request.user, members=users)
 
-    @permission_classes([CustomAuthentication,IsCreatorOfObject])
-    @action(methods=['patch'],detail=True,url_path='update_members',url_name='update_members')
-    def update_members(self,request,pk):
-        users = list(self.request.data.get("members",[]))
+    @permission_classes([CustomAuthentication, IsCreatorOfObject])
+    @action(methods=['patch'], detail=True, url_path='update_members', url_name='update_members')
+    def update_members(self, request, pk):
+        users = list(self.request.data.get("members", []))
         instance = self.get_object()
         creator_id = instance.creator.id
         # print(creator_id)
@@ -271,13 +321,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if creator_id not in list(users):
             users.append(creator_id)
         project = models.Project.objects.get(pk=pk)
-        ser = serializers.ProjectSerializer(project,data={"members":users},partial=True)
+        ser = serializers.ProjectSerializer(
+            project, data={"members": users}, partial=True)
         if ser.is_valid():
             ser.save()
-            return Response({"status":"updated members successfully","user_ids":users},status=status.HTTP_202_ACCEPTED)
+            return Response({"status": "updated members successfully", "user_ids": users}, status=status.HTTP_202_ACCEPTED)
         else:
-            return Response(ser.errors(),status=status.Http404)
-
+            return Response(ser.errors(), status=status.Http404)
 
     @permission_classes([CustomAuthentication])
     @action(methods=['get', ], detail=True, url_path='bugs', url_name='bugs')
@@ -291,7 +341,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
         ser = serializers.BugSerializer(bug_list, many=True)
         return Response(ser.data)
 
+
 class ImageViewSet(viewsets.ModelViewSet):
-    queryset=models.Image.objects.all()
+    queryset = models.Image.objects.all()
     serializer_class = serializers.ImageSerializer
-    permission_classes=([AllowAny])     
+    permission_classes = ([AllowAny])

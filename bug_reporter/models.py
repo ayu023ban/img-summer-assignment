@@ -46,16 +46,22 @@ class Bug(models.Model):
         return self.name
     project = models.ForeignKey(Project,related_name = "bugs", on_delete=models.CASCADE)
     creator = models.ForeignKey(settings.AUTH_USER_MODEL,related_name = "bugs", on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
+    name = RichTextField(blank=True)
     description = models.CharField(max_length=200,blank = True)
     issued_at = models.DateTimeField("Creation Time",auto_now_add = True)
-    tag = models.CharField(max_length=100,blank=True,null=True)
     status = models.CharField(max_length=100,choices = STATUS_CHOICES)
     important = models.BooleanField(default=False)
     assigned_to = models.ForeignKey(User,related_name="issues_assigned_to_users",on_delete=models.SET_NULL,blank=True,null=True)
     domain = models.CharField(choices=(('f','frontend'),('b','backend'),('o','other')),max_length=100,null=True,blank=True)
     class Meta:
         ordering=['-issued_at']
+
+
+class Tag(models.Model):
+    bugs = models.ManyToManyField(Bug,related_name="tags",blank=True)
+    name=models.CharField(max_length=100)
+    def __str__(self):
+        return self.name
 
 class Comment(models.Model):
     def __str__(self):
