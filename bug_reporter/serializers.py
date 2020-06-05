@@ -32,10 +32,10 @@ class BugSerializer(serializers.ModelSerializer):
         return obj.comments.count()
     def get_tags(self,obj):
         tags = obj.tags.all()
-        print(tags)
         result = []
         for x in tags:
-            result.append(x.name)
+            # result.append(x.name)
+            result.append({"name":x.name,"id":x.id})
         return result
 
 

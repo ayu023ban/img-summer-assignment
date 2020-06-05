@@ -59,19 +59,26 @@ class CommentViewSet(viewsets.ModelViewSet):
             return [permission() for permission in self.permission_classes_by_action['default']]
 
     def perform_create(self, serializer):
-        serializer.save(creator=self.request.user)
+        comment = serializer.save(creator=self.request.user)
+        creator = comment.creator.full_name
+        bug = comment.bug
+        bug_creator = bug.creator
+        email = [bug_creator.email]
+        subject = f"{creator} commented on your issue {bug.name}"
+        message = f"<pre>{creator} commented on your issue {bug.name}.\nThe Comment is:</pre>"
+        html_message = message+comment.description
+        # send_mail(subject, message, settings.EMAIL_HOST_USER, email,
+        #   fail_silently=True, html_message=html_message)
 
 
 class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     queryset = models.User.objects.all()
-    # serializer_class = serializers.UserSerializer
     permission_classes_by_action = {'update': [CustomAuthentication, IsCreatorOfObject],
                                     'destroy': [CustomAuthentication, IsMaster],
-                                    # 'create':[AllowAny],
                                     'login_with_temporary_token': [AllowAny],
-                                    'logout': [CustomAuthentication],
                                     'loginWithCookie': [AllowAny],
-                                    'disable':[IsMaster],
+                                    'disable': [IsMaster],
+                                    'master': [IsMaster],
                                     'default': [CustomAuthentication],
                                     }
 
@@ -88,7 +95,6 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Updat
 
     @action(methods=['POST', 'OPTIONS'], detail=False, url_name='login', url_path='login')
     def login_with_temporary_token(self, request):
-        print(request.data)
         try:
             code = request.data["code"]
         except KeyError:
@@ -196,24 +202,34 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Updat
         }
         return Response(res)
 
-    @action(methods=["GET"],detail=True,url_name="Disable",url_path="disable")
-    def disable(self,request,pk):
+    @action(methods=["GET"], detail=True, url_name="Disable", url_path="disable")
+    def disable(self, request, pk):
         user = models.User.objects.get(pk=pk)
         user.isDisabled = not user.isDisabled
         user.save()
         ser = serializers.UserSerializer(user)
         return Response(ser.data)
 
+    @action(methods=["GET"], detail=True, url_name="Master", url_path='master')
+    def master(self, request, pk):
+        user = models.User.objects.get(pk=pk)
+        user.isMaster = not user.isMaster
+        user.save()
+        ser = serializers.UserSerializer(user)
+        return Response(ser.data)
+
+
 class BugViewSet(viewsets.ModelViewSet):
     queryset = models.Bug.objects.all().order_by('-issued_at')
     serializer_class = serializers.BugSerializer
     filter_backends = (filters.DjangoFilterBackend,
                        SearchFilter, OrderingFilter)
-    __basic_fields = [ 'creator', 'domain', 'status', 'important']
+    __basic_fields = ['tags', 'creator', 'domain', 'status', 'important']
     filter_fields = __basic_fields
     search_fields = __basic_fields
     permission_classes_by_action = {'update': [CustomAuthentication, IsCreatorOfObject],
                                     'destroy': [CustomAuthentication, IsCreatorOfObject],
+                                    'assign_bug': [CustomAuthentication, IsMemberOfProjectOfCurrentIssue],
                                     'default': [CustomAuthentication]}
 
     def get_permissions(self):
@@ -225,18 +241,20 @@ class BugViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         tags = self.request.data["tags"]
         bug = serializer.save(creator=self.request.user, status="P")
-        print(tags)
         for x in tags:
-            (tag,_) = models.Tag.objects.get_or_create(name=x)
-            print(tag)
+            (tag, _) = models.Tag.objects.get_or_create(name=x)
             tag.bugs.add(bug)
 
-    @action(methods=['get', ], detail=False, url_path='mybugs', url_name='my_bugs')
-    def get_my_issue(self, request):
-        query = (Q(creator=request.user) | Q(assigned_to=request.user))
-        bugs = models.Bug.objects.filter(query)
-        ser = serializers.BugSerializer(bugs, many=True)
-        return Response(ser.data,)
+        project = bug.project
+        members = project.members.all()
+        emails = []
+        for x in members:
+            emails.append(x.email)
+        subject = f"New Issue To Your Project {project.name}"
+        message = "<p>A new issue is added to you project</p><p>Here is the description of the issue.</p><hr/><br/><br/>"
+        html_message = message+bug.description
+        # send_mail(subject, message, settings.EMAIL_HOST_USER, emails,
+        #         fail_silently=False, html_message=html_message)
 
     @action(methods=['get', ], detail=True, url_path='assign', url_name='assign')
     def assign_bug(self, request, pk):
@@ -255,35 +273,6 @@ class BugViewSet(viewsets.ModelViewSet):
             return Response({'Error': 'User not a team member'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
 
-@receiver(post_save, sender=models.Bug)
-def issue_create_mail_sender(sender, **kwargs):
-    bug = kwargs['instance']
-    project = bug.project
-    members = project.members.all()
-    emails = []
-    for x in members:
-        emails.append(x.email)
-    subject = f"New Issue To Your Project {project.name}"
-    message = "<p>A new issue is added to you project</p><p>Here is the description of the issue.</p><hr/><br/><br/>"
-    html_message = message+bug.description
-    send_mail(subject, message, settings.EMAIL_HOST_USER, emails,
-              fail_silently=False, html_message=html_message)
-
-
-@receiver(post_save, sender=models.Comment)
-def comment_create_mail_sender(sender, **kwargs):
-    comment = kwargs['instance']
-    creator = comment.creator.full_name
-    bug = comment.bug
-    bug_creator = bug.creator
-    email = [bug_creator.email]
-    subject = f"{creator} commented on your issue {bug.name}"
-    message = f"<pre>{creator} commented on your issue {bug.name}.\nThe Comment is:</pre>"
-    html_message = message+comment.description
-    send_mail(subject, message, settings.EMAIL_HOST_USER, email,
-              fail_silently=True, html_message=html_message)
-
-
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = models.Project.objects.all().order_by('-created_at')
     serializer_class = serializers.ProjectSerializer
@@ -292,9 +281,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
     __basic_fields = ['name', 'wiki', 'githublink', 'creator', 'members']
     filter_fields = __basic_fields
     search_fields = __basic_fields
-    # permission_classes = [AllowAny]
     permission_classes_by_action = {'update': [CustomAuthentication, IsTeamMember],
                                     'destroy': [CustomAuthentication, IsCreatorOfObject],
+                                    'update_members': [CustomAuthentication, IsTeamMember],
                                     'default': [CustomAuthentication]}
 
     def get_permissions(self):
@@ -309,13 +298,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
             users.append(self.request.user.id)
         serializer.save(creator=self.request.user, members=users)
 
-    @permission_classes([CustomAuthentication, IsCreatorOfObject])
     @action(methods=['patch'], detail=True, url_path='update_members', url_name='update_members')
     def update_members(self, request, pk):
         users = list(self.request.data.get("members", []))
         instance = self.get_object()
         creator_id = instance.creator.id
-        # print(creator_id)
         if self.request.user.id not in list(users):
             users.append(self.request.user.id)
         if creator_id not in list(users):
@@ -329,20 +316,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
         else:
             return Response(ser.errors(), status=status.Http404)
 
-    @permission_classes([CustomAuthentication])
-    @action(methods=['get', ], detail=True, url_path='bugs', url_name='bugs')
-    def get_issues(self, request, pk):
-        user = request.user
-        try:
-            bug_list = models.Bug.objects.filter(project=pk)
-        except models.Bug.DoesNotExist:
-            return Response({'Empty': 'No Bugs for this project yet'}, status=status.HTTP_204_NO_CONTENT)
-
-        ser = serializers.BugSerializer(bug_list, many=True)
-        return Response(ser.data)
-
 
 class ImageViewSet(viewsets.ModelViewSet):
     queryset = models.Image.objects.all()
     serializer_class = serializers.ImageSerializer
-    permission_classes = ([AllowAny])
+    permission_classes = ([CustomAuthentication])
