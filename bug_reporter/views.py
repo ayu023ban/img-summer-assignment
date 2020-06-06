@@ -122,11 +122,13 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Updat
         maintainer = True
         for i in roles:
             if i['role'] == 'Maintainer':
-                maintainer = True
+                maintainer = False
         if maintainer:
             try:
                 user = models.User.objects.get(
                     email=user_data['contactInformation']['instituteWebmailAddress'])
+                if user.isDisabled :
+                    return Response("user is disabled",status=status.HTTP_403_FORBIDDEN)
                 response = self.login(user, response, user_data)
             except models.User.DoesNotExist:
                 first_name = user_data['person']['fullName'].split(" ")[0]
