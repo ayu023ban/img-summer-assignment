@@ -122,7 +122,7 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Updat
         maintainer = True
         for i in roles:
             if i['role'] == 'Maintainer':
-                maintainer = False
+                maintainer = True
         if maintainer:
             try:
                 user = models.User.objects.get(
@@ -226,7 +226,7 @@ class BugViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.BugSerializer
     filter_backends = (filters.DjangoFilterBackend,
                        SearchFilter, OrderingFilter)
-    __basic_fields = ['tags', 'creator', 'domain', 'status', 'important']
+    __basic_fields = ['tags', 'creator', 'domain', 'status', 'important','project']
     filter_fields = __basic_fields
     search_fields = __basic_fields
     permission_classes_by_action = {'update': [CustomAuthentication, IsCreatorOfObject],
@@ -310,6 +310,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if creator_id not in list(users):
             users.append(creator_id)
         project = models.Project.objects.get(pk=pk)
+        old_users = list(instance.members.all())
+        old_users_id = [x.id for x in old_users]
+        diff_user = None
+        for x in old_users_id:
+            if not x in users:
+                diff_user = x
+        if(diff_user != None):
+            to_modified_bugs = instance.bugs.all().filter( assigned_to = diff_user)
+            for x in to_modified_bugs:
+                x.assigned_to = None
+                x.save()
         ser = serializers.ProjectSerializer(
             project, data={"members": users}, partial=True)
         if ser.is_valid():

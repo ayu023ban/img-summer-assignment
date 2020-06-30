@@ -8,7 +8,7 @@ class CustomAuthentication(permissions.BasePermission):
 class IsTeamMember(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         project = obj
-        users = project.users.all()
+        users = project.members.all()
         return request.user and request.user in list(users) or request.user.isMaster
            
 class IsCreatorOfObject(permissions.BasePermission):
@@ -23,5 +23,5 @@ class IsMemberOfProjectOfCurrentIssue(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         issue = obj
         project = issue.project
-        users = project.users.all()
+        users = project.members.all()
         return request.user and request.user in list(users) or request.user.isMaster
