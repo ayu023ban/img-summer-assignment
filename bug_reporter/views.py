@@ -103,13 +103,14 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Updat
             "client_id": "l1Wb17BXy5ZoQeJ1fzOtZutOObUrzSi9fW1xxLGR",
             "client_secret": secret.readline(),
             "grant_type": "authorization_code",
-            "redirect_url": "http://localhost:8000/bug_reporter/login/",
+            "redirect_url": "http://localhost:8000/bug_reporter/users/login/",
             "code": code
         }
         response = requests.post(
             'https://internet.channeli.in/open_auth/token/', data=post_data_for_token).json()
 
         try:
+            print(response,code)
             access_token = response["access_token"]
         except KeyError:
             return Response("Your code is Wrong", status=status.HTTP_400_BAD_REQUEST)
