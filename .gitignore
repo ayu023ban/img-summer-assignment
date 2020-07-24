@@ -1,3 +1,5 @@
 bug_reporter/secret.txt
 bug_reporter/email_setting.py
+bug_reporter/secret.py
+.venv
 # img/settings.py

@@ -92,7 +92,7 @@ TEMPLATES = [
 #     # Empty for now (http->django views is added by default)
 # })
 
-WSGI_APPLICATION = 'img.wsgi.application'
+# WSGI_APPLICATION = 'img.wsgi.application'
 
 
 # Database
@@ -104,9 +104,9 @@ DATABASES = {
         'OPTIONS': {
             'charset': 'utf8mb4',
             # 'use_unicode': True,
-            'database': "img_summer_assignment",
-            'user': 'ayush',
-            'password': 'password',
+            'database': "bug_tracker_backend",
+            'user': 'root',
+            'password': 'ayushbansal',
             # 'read_default_file': '/home/ayu023ban/my.cnf',
         }
     }
@@ -193,7 +193,7 @@ REST_FRAMEWORK = {
 }
 AUTH_USER_MODEL = 'bug_reporter.User'
 
-from bug_reporter.email_setting import *
+from bug_reporter.secret import *
 EMAIL_USE_TLS = EMAIL_USE_TLS
 EMAIL_BACKEND = EMAIL_BACKEND
 EMAIL_HOST = EMAIL_HOST

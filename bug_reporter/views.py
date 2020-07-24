@@ -24,9 +24,8 @@ from django.utils import timezone
 from django.db.models import Q
 import os
 from django.conf import settings
-file_path = os.path.join(settings.BASE_DIR, "bug_reporter/secret.txt")
-
-secret = open(file_path, "r")
+from bug_reporter.secret import O_AUTH_SECRET 
+secret = O_AUTH_SECRET
 
 
 def expires_in(token):
@@ -101,7 +100,7 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Updat
             return Response("'error' key is missing", status=status.HTTP_404_NOT_FOUND)
         post_data_for_token = {
             "client_id": "l1Wb17BXy5ZoQeJ1fzOtZutOObUrzSi9fW1xxLGR",
-            "client_secret": secret.readline(),
+            "client_secret": secret,
             "grant_type": "authorization_code",
             "redirect_url": "http://localhost:8000/bug_reporter/users/login/",
             "code": code
@@ -110,7 +109,6 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Updat
             'https://internet.channeli.in/open_auth/token/', data=post_data_for_token).json()
 
         try:
-            print(response,code)
             access_token = response["access_token"]
         except KeyError:
             return Response("Your code is Wrong", status=status.HTTP_400_BAD_REQUEST)
