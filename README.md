@@ -1,5 +1,3 @@
-![Buggernaut Logo]
-
 **Bug Tracker is an app to simplify the process of reporting and accessing various issues and bugs in any ongoing project**
 
 This is the repository for the **backend** application of Bug Tracker. Click [here](https://github.com/ayu023ban/bug_tracker_frontend) to go to the frontend repository.
