@@ -105,8 +105,8 @@ DATABASES = {
             'charset': 'utf8mb4',
             # 'use_unicode': True,
             'database': "bug_tracker_backend",
-            'user': 'root',
-            'password': 'ayushbansal',
+            'user': 'ayu023ban',
+            'password': 'password',
             # 'read_default_file': '/home/ayu023ban/my.cnf',
         }
     }
